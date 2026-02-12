@@ -1,0 +1,277 @@
+import React, { useState } from 'react';
+import { useApp } from '../store';
+import { Task } from '../types';
+import { Trophy, Target, TrendingUp, Star, LayoutList, KanbanSquare, Plus, CheckCircle, Circle, Trash2, Filter } from 'lucide-react';
+
+const priorityColor = (p?: string) => {
+    switch(p) {
+        case 'high': return 'text-red-400 bg-red-900/20 border-red-900/30';
+        case 'medium': return 'text-yellow-400 bg-yellow-900/20 border-yellow-900/30';
+        case 'low': return 'text-green-400 bg-green-900/20 border-green-900/30';
+        default: return 'text-slate-400 bg-white/5';
+    }
+};
+
+const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
+    const { toggleTask, deleteTask } = useApp();
+    return (
+      <div className={`group bg-white/5 p-4 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all ${task.completed ? 'opacity-50' : ''}`}>
+          <div className="flex items-start gap-3">
+              <button onClick={() => toggleTask(task.id)} className="mt-0.5 text-white/30 hover:text-indigo-400 transition-colors">
+                  {task.completed ? <CheckCircle size={20} className="text-green-400" /> : <Circle size={20} />}
+              </button>
+              <div className="flex-1">
+                  <h4 className={`text-sm font-medium text-white ${task.completed ? 'line-through text-white/40' : ''}`}>{task.title}</h4>
+                  <div className="flex gap-2 mt-2">
+                      {task.priority && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wider font-bold ${priorityColor(task.priority)}`}>
+                              {task.priority}
+                          </span>
+                      )}
+                      {task.context && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-white/60 uppercase tracking-wider">
+                              {task.context}
+                          </span>
+                      )}
+                  </div>
+              </div>
+              <button 
+                onClick={() => deleteTask(task.id)}
+                className="opacity-0 group-hover:opacity-100 text-white/30 hover:text-red-400 transition-opacity"
+              >
+                  <Trash2 size={16} />
+              </button>
+          </div>
+      </div>
+    );
+};
+
+export const ProjectTracker: React.FC = () => {
+  const { stats, goals, tasks, addTask } = useApp();
+  const [activeTab, setActiveTab] = useState<'tasks' | 'goals'>('tasks');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState<'high'|'medium'|'low'>('medium');
+  const [newTaskContext, setNewTaskContext] = useState<'work'|'personal'|'learning'>('work');
+  const [isAddingTask, setIsAddingTask] = useState(false);
+
+  // Stats Logic
+  const nextLevelExp = stats.level * 500;
+  const progressPercent = Math.min((stats.exp / nextLevelExp) * 100, 100);
+
+  const handleAddTask = (e: React.FormEvent) => {
+      e.preventDefault();
+      if(newTaskTitle.trim()) {
+          addTask(newTaskTitle, newTaskPriority, newTaskContext);
+          setNewTaskTitle('');
+          setIsAddingTask(false);
+      }
+  };
+
+  return (
+    <div className="h-full flex flex-col max-w-6xl mx-auto animate-fade-in">
+        
+        {/* Header Tabs */}
+        <div className="flex flex-col md:flex-row items-center justify-between p-6 pb-0 gap-4">
+             <div className="flex p-1 bg-white/5 rounded-lg border border-white/5">
+                 <button 
+                    onClick={() => setActiveTab('tasks')}
+                    className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'tasks' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-white/50 hover:text-white/80'}`}
+                 >
+                    Tasks
+                 </button>
+                 <button 
+                    onClick={() => setActiveTab('goals')}
+                    className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'goals' ? 'bg-white/10 text-white shadow-sm ring-1 ring-white/5' : 'text-white/50 hover:text-white/80'}`}
+                 >
+                    Goals & Stats
+                 </button>
+             </div>
+             
+             {/* Gamification Mini-Display */}
+             <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+                <Trophy size={16} className="text-yellow-400" />
+                <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white">Lvl {stats.level}</span>
+                    <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-500" style={{ width: `${progressPercent}%` }}></div>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        <div className="flex-1 p-6 overflow-hidden flex flex-col">
+            {activeTab === 'tasks' ? (
+                // TASKS VIEW
+                <div className="flex flex-col h-full gap-6">
+                    <div className="flex justify-between items-center">
+                        <div className="flex gap-2">
+                             <button 
+                                onClick={() => setViewMode('list')}
+                                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40 hover:bg-white/5'}`}
+                                title="List View"
+                             >
+                                <LayoutList size={20} />
+                             </button>
+                             <button 
+                                onClick={() => setViewMode('kanban')}
+                                className={`p-2 rounded-lg ${viewMode === 'kanban' ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40 hover:bg-white/5'}`}
+                                title="Kanban Board"
+                             >
+                                <KanbanSquare size={20} />
+                             </button>
+                        </div>
+                        <button 
+                            onClick={() => setIsAddingTask(!isAddingTask)}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-900/30"
+                        >
+                            <Plus size={18} /> New Task
+                        </button>
+                    </div>
+
+                    {/* Add Task Form */}
+                    {isAddingTask && (
+                        <form onSubmit={handleAddTask} className="bg-white/5 p-4 rounded-xl border border-white/10 animate-slide-up flex flex-col md:flex-row gap-4 items-end">
+                            <div className="flex-1 w-full">
+                                <label className="text-xs font-bold text-white/40 uppercase">Task Name</label>
+                                <input 
+                                    type="text" 
+                                    autoFocus
+                                    className="w-full mt-1 p-2 rounded-lg border border-white/10 bg-black/20 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    placeholder="e.g., Write monthly report"
+                                    value={newTaskTitle}
+                                    onChange={e => setNewTaskTitle(e.target.value)}
+                                />
+                            </div>
+                            <div className="w-full md:w-32">
+                                <label className="text-xs font-bold text-white/40 uppercase">Context</label>
+                                <select 
+                                    className="w-full mt-1 p-2 rounded-lg border border-white/10 bg-black/20 text-white"
+                                    value={newTaskContext}
+                                    onChange={(e: any) => setNewTaskContext(e.target.value)}
+                                >
+                                    <option value="work" className="bg-gray-900">Work</option>
+                                    <option value="personal" className="bg-gray-900">Personal</option>
+                                    <option value="learning" className="bg-gray-900">Learning</option>
+                                </select>
+                            </div>
+                            <div className="w-full md:w-32">
+                                <label className="text-xs font-bold text-white/40 uppercase">Priority</label>
+                                <select 
+                                    className="w-full mt-1 p-2 rounded-lg border border-white/10 bg-black/20 text-white"
+                                    value={newTaskPriority}
+                                    onChange={(e: any) => setNewTaskPriority(e.target.value)}
+                                >
+                                    <option value="high" className="bg-gray-900">High</option>
+                                    <option value="medium" className="bg-gray-900">Medium</option>
+                                    <option value="low" className="bg-gray-900">Low</option>
+                                </select>
+                            </div>
+                            <button type="submit" className="w-full md:w-auto px-6 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20">
+                                Add
+                            </button>
+                        </form>
+                    )}
+
+                    {viewMode === 'list' ? (
+                        <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                             {tasks.length === 0 ? (
+                                 <div className="text-center py-20 text-white/40">No tasks yet. Create one!</div>
+                             ) : (
+                                 tasks.map(task => <TaskCard key={task.id} task={task} />)
+                             )}
+                        </div>
+                    ) : (
+                        <div className="flex-1 overflow-x-auto overflow-y-hidden flex gap-6 pb-2">
+                             {['work', 'personal', 'learning'].map(ctx => (
+                                 <div key={ctx} className="flex-1 min-w-[300px] flex flex-col bg-white/5 rounded-2xl border border-white/5 p-4">
+                                     <div className="flex items-center justify-between mb-4">
+                                         <h3 className="font-bold text-white/60 uppercase tracking-wider text-sm">{ctx}</h3>
+                                         <span className="bg-white/10 text-white/80 px-2 py-0.5 rounded-full text-xs font-bold">
+                                             {tasks.filter(t => t.context === ctx && !t.completed).length}
+                                         </span>
+                                     </div>
+                                     <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                                         {tasks.filter(t => t.context === ctx).map(task => (
+                                             <TaskCard key={task.id} task={task} />
+                                         ))}
+                                     </div>
+                                 </div>
+                             ))}
+                        </div>
+                    )}
+                </div>
+            ) : (
+                // GOALS VIEW
+                <div className="flex flex-col gap-8 overflow-y-auto custom-scrollbar">
+                     {/* Level Stats */}
+                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white shadow-lg shadow-indigo-900/40">
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                                    <Trophy size={32} className="text-yellow-300" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-bold">Level {stats.level}</h2>
+                                    <p className="text-indigo-100">Productivity Master</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-4xl font-mono font-bold">{stats.exp}</p>
+                                <p className="text-xs text-indigo-200 uppercase tracking-widest">Total EXP</p>
+                            </div>
+                        </div>
+                        
+                        <div className="relative h-3 bg-black/20 rounded-full overflow-hidden">
+                            <div 
+                                className="absolute top-0 left-0 h-full bg-yellow-400 transition-all duration-1000" 
+                                style={{ width: `${progressPercent}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-right text-xs mt-2 text-indigo-200">{Math.floor(nextLevelExp - stats.exp)} XP to next level</p>
+                    </div>
+
+                    {/* Goals Grid */}
+                    <div>
+                        <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                            <Target size={18} className="text-indigo-400" /> Active Goals
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {goals.map(goal => (
+                                <div key={goal.id} className="bg-white/5 p-6 rounded-xl border border-white/5 shadow-sm hover:border-white/20 transition-all">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${goal.type === 'life' ? 'bg-purple-500/20 text-purple-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                                                {goal.type} Goal
+                                            </span>
+                                            <h4 className="text-lg font-medium text-white mt-2">{goal.title}</h4>
+                                        </div>
+                                        <button className="text-white/30 hover:text-yellow-400 transition-colors">
+                                            <Star size={18} />
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="flex items-end gap-2 mb-1">
+                                        <span className="text-2xl font-bold text-white">{goal.progress}%</span>
+                                        <span className="text-sm text-white/40 mb-1">completed</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${goal.progress}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                            
+                            <div className="border-2 border-dashed border-white/10 rounded-xl flex items-center justify-center p-6 text-white/40 hover:border-indigo-500/50 hover:text-indigo-400 cursor-pointer transition-colors min-h-[160px]">
+                                <div className="text-center">
+                                    <Target className="mx-auto mb-2 opacity-50" size={24} />
+                                    <p className="text-sm font-medium">Set New Goal</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    </div>
+  );
+};

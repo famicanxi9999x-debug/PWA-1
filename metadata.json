@@ -1,0 +1,7 @@
+{
+  "name": "FlowState Life OS",
+  "description": "A context-aware, AI-powered Life OS designed to manage tasks, focus, and goals with minimal friction.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
