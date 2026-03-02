@@ -8,7 +8,7 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
-            registerType: 'prompt', // Changed from autoUpdate for better UX
+            registerType: 'autoUpdate', // Ensure new deployments purge old UI cache instantly
             injectRegister: 'auto',
             strategies: 'injectManifest',
             srcDir: 'src',
