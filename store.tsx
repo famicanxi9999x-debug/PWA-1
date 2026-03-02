@@ -159,6 +159,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setNotes([]);
         setTasks(INITIAL_TASKS);
       }
+
+      // Clean up the URL hash if it contains OAuth tokens
+      if (window.location.hash.includes('access_token=')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     });
 
     return () => subscription.unsubscribe();
