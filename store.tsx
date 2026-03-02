@@ -227,8 +227,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [stats, setStats] = useState<UserStats>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.STATS);
-      return saved ? JSON.parse(saved) : { exp: 1250, level: 3, streak: 5, focusMinutesToday: 45 };
-    } catch { return { exp: 1250, level: 3, streak: 5, focusMinutesToday: 45 }; }
+      return saved ? JSON.parse(saved) : { exp: 0, level: 1, streak: 0, focusMinutesToday: 0 };
+    } catch { return { exp: 0, level: 1, streak: 0, focusMinutesToday: 0 }; }
   });
 
   const [events, setEvents] = useState<CalendarEvent[]>(() => {

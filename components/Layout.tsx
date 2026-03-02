@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../store';
 import { AppView } from '../types';
-import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell } from 'lucide-react';
+import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database } from 'lucide-react';
 import ExpandOnHover from './ui/expand-cards';
 import { aiCall } from '../lib/aiClient';
 import { supabase } from '../lib/supabase';
@@ -198,60 +198,62 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                             </div>
 
                             {/* Testing / Debug Area */}
-                            <div className="pt-4 border-t border-white/10 space-y-2">
-                                <button
-                                    onClick={async () => {
-                                        if (isTestingAI) return;
-                                        setIsTestingAI(true);
-                                        try {
-                                            const result = await aiCall("auto_tag", { text: "learning javascript and productivity" });
-                                            console.log("AI Test Result:", result);
-                                            alert("Success! AI Tags: " + JSON.stringify(result.tags || result));
-                                        } catch (err: any) {
-                                            console.error("AI Test Error:", err);
-                                            alert("Error: " + err.message);
-                                        } finally {
-                                            setIsTestingAI(false);
-                                        }
-                                    }}
-                                    disabled={isTestingAI}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 text-sm font-semibold rounded-md hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
-                                >
-                                    {isTestingAI ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                                    {isTestingAI ? "Testing..." : "Test AI Worker"}
-                                </button>
+                            {import.meta.env.DEV && (
+                                <div className="pt-4 border-t border-white/10 space-y-2">
+                                    <button
+                                        onClick={async () => {
+                                            if (isTestingAI) return;
+                                            setIsTestingAI(true);
+                                            try {
+                                                const result = await aiCall("auto_tag", { text: "learning javascript and productivity" });
+                                                console.log("AI Test Result:", result);
+                                                alert("Success! AI Tags: " + JSON.stringify(result.tags || result));
+                                            } catch (err: any) {
+                                                console.error("AI Test Error:", err);
+                                                alert("Error: " + err.message);
+                                            } finally {
+                                                setIsTestingAI(false);
+                                            }
+                                        }}
+                                        disabled={isTestingAI}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 text-sm font-semibold rounded-md hover:bg-yellow-500/20 transition-colors disabled:opacity-50"
+                                    >
+                                        {isTestingAI ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                                        {isTestingAI ? "Testing..." : "Test AI Worker"}
+                                    </button>
 
-                                <button
-                                    onClick={async () => {
-                                        if (!('Notification' in window)) {
-                                            alert('This browser does not support desktop notification');
-                                            return;
-                                        }
-                                        const permission = await Notification.requestPermission();
-                                        if (permission === 'granted') {
-                                            alert('Push Notifications Enabled! Fameo will now send you gentle reminders.');
-                                        } else {
-                                            alert('Notifications blocked. You can change this in your browser settings.');
-                                        }
-                                        setShowProfileMenu(false);
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-md hover:bg-blue-500/20 transition-colors"
-                                >
-                                    <Bell size={16} /> {/* Placeholder icon, prefer Bell if available */}
-                                    Enable Notifications
-                                </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (!('Notification' in window)) {
+                                                alert('This browser does not support desktop notification');
+                                                return;
+                                            }
+                                            const permission = await Notification.requestPermission();
+                                            if (permission === 'granted') {
+                                                alert('Push Notifications Enabled! Fameo will now send you gentle reminders.');
+                                            } else {
+                                                alert('Notifications blocked. You can change this in your browser settings.');
+                                            }
+                                            setShowProfileMenu(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 text-sm font-semibold rounded-md hover:bg-blue-500/20 transition-colors"
+                                    >
+                                        <Bell size={16} /> {/* Placeholder icon, prefer Bell if available */}
+                                        Enable Notifications
+                                    </button>
 
-                                <button
-                                    onClick={() => {
-                                        setShowSupabaseTest(true);
-                                        setShowProfileMenu(false);
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 text-sm font-semibold rounded-md hover:bg-emerald-500/20 transition-colors"
-                                >
-                                    <Settings size={16} />
-                                    Supabase Dev Tools
-                                </button>
-                            </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowSupabaseTest(true);
+                                            setShowProfileMenu(false);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-500 text-sm font-semibold rounded-md hover:bg-emerald-500/20 transition-colors"
+                                    >
+                                        <Database size={16} />
+                                        Supabase Dev Tools
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Session Management */}
                             <div className="pt-4 border-t border-white/10">
