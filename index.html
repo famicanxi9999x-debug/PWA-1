@@ -1,132 +1,359 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlowState Life OS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            animation: {
-              "shine-pulse": "shine-pulse var(--shine-pulse-duration) infinite linear",
-              "fade-in": "fadeIn 0.5s ease-out forwards",
-              "slide-up": "slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-              "background-gradient": "background-gradient var(--background-gradient-speed, 15s) cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite",
-            },
-            keyframes: {
-              "shine-pulse": {
-                "0%": { "background-position": "0% 0%" },
-                "50%": { "background-position": "100% 100%" },
-                "to": { "background-position": "0% 0%" },
-              },
-              fadeIn: {
-                "0%": { opacity: "0" },
-                "100%": { opacity: "1" },
-              },
-              slideUp: {
-                "0%": { transform: "translateY(20px)", opacity: "0" },
-                "100%": { transform: "translateY(0)", opacity: "1" },
-              },
-              "background-gradient": {
-                "0%, 100%": {
-                  transform: "translate(0, 0)",
-                  animationDelay: "var(--background-gradient-delay, 0s)",
-                },
-                "20%": {
-                  transform:
-                    "translate(calc(100% * var(--tx-1, 1)), calc(100% * var(--ty-1, 1)))",
-                },
-                "40%": {
-                  transform:
-                    "translate(calc(100% * var(--tx-2, -1)), calc(100% * var(--ty-2, 1)))",
-                },
-                "60%": {
-                  transform:
-                    "translate(calc(100% * var(--tx-3, 1)), calc(100% * var(--ty-3, -1)))",
-                },
-                "80%": {
-                  transform:
-                    "translate(calc(100% * var(--tx-4, -1)), calc(100% * var(--ty-4, -1)))",
-                },
-              },
-            },
-            colors: {
-              border: "hsl(var(--border))",
-              input: "hsl(var(--input))",
-              ring: "hsl(var(--ring))",
-              background: "hsl(var(--background))",
-              foreground: "hsl(var(--foreground))",
-              primary: {
-                DEFAULT: "hsl(var(--primary))",
-                foreground: "hsl(var(--primary-foreground))",
-              },
-              secondary: {
-                DEFAULT: "hsl(var(--secondary))",
-                foreground: "hsl(var(--secondary-foreground))",
-              },
-              destructive: {
-                DEFAULT: "hsl(var(--destructive))",
-                foreground: "hsl(var(--destructive-foreground))",
-              },
-              muted: {
-                DEFAULT: "hsl(var(--muted))",
-                foreground: "hsl(var(--muted-foreground))",
-              },
-              accent: {
-                DEFAULT: "hsl(var(--accent))",
-                foreground: "hsl(var(--accent-foreground))",
-              },
-              popover: {
-                DEFAULT: "hsl(var(--popover))",
-                foreground: "hsl(var(--popover-foreground))",
-              },
-              card: {
-                DEFAULT: "hsl(var(--card))",
-                foreground: "hsl(var(--card-foreground))",
-              },
-            }
-          }
-        }
-      }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Fameo Life OS - The ultimate operating system for your flow state. Manage tasks, notes, and schedule elegantly." />
+  <title>Fameo Life OS</title>
+  <!-- Preconnect to Google Fonts for faster loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" as="style" />
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: 222.2 84% 4.9%;
+      --foreground: 210 40% 98%;
+    }
+
+    /* Base Style Overrides for Premium Feel */
+    body {
+      font-family: 'Satoshi', sans-serif;
+      background: #111113;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    body.high-contrast .bg-\[\#16181D\] {
+      background-color: #1A1D24 !important;
+    }
+
+    body.high-contrast .border-\[\#2A2D35\] {
+      border-color: #4A4D55 !important;
+    }
+
+    body.high-contrast .bg-black\/30 {
+      background-color: rgba(0, 0, 0, 0.6) !important;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Utilities */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* TipTap Editor Styles */
+    .ProseMirror {
+      outline: none;
+    }
+
+    .ProseMirror p {
+      margin: 0.75em 0;
+    }
+
+    .ProseMirror h1 {
+      font-size: 2.5em;
+      font-weight: 700;
+      margin: 1em 0 0.5em;
+      line-height: 1.2;
+    }
+
+    .ProseMirror h2 {
+      font-size: 2em;
+      font-weight: 600;
+      margin: 0.9em 0 0.4em;
+      line-height: 1.3;
+    }
+
+    .ProseMirror h3 {
+      font-size: 1.5em;
+      font-weight: 600;
+      margin: 0.8em 0 0.3em;
+      line-height: 1.4;
+    }
+
+    .ProseMirror ul,
+    .ProseMirror ol {
+      padding-left: 1.5em;
+      margin: 1em 0;
+    }
+
+    .ProseMirror li {
+      margin: 0.25em 0;
+    }
+
+    .ProseMirror code {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f472b6;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9em;
+    }
+
+    .ProseMirror pre {
+      background: rgba(0, 0, 0, 0.4);
+      color: #e0e0e0;
+      font-family: 'Fira Code', monospace;
+      padding: 1em;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1.5em 0;
+    }
+
+    .ProseMirror pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+      font-size: 0.9em;
+    }
+
+    .ProseMirror blockquote {
+      border-left: 4px solid rgba(99, 102, 241, 0.5);
+      padding-left: 1em;
+      margin: 1em 0;
+      color: rgba(255, 255, 255, 0.7);
+      font-style: italic;
+    }
+
+    .ProseMirror hr {
+      border: none;
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+      margin: 2em 0;
+    }
+
+    .ProseMirror a {
+      color: #818cf8;
+      text-decoration: underline;
+    }
+
+    .ProseMirror a:hover {
+      color: #a5b4fc;
+    }
+
+    .ProseMirror table {
+      border-collapse: collapse;
+      margin: 1.5em 0;
+      width: 100%;
+    }
+
+    .ProseMirror th,
+    .ProseMirror td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.5em 0.75em;
+      text-align: left;
+    }
+
+    .ProseMirror th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+    }
+
+    .ProseMirror img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin: 1em 0;
+    }
+
+    /* Hero Section 3D Styles */
+    .hero-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .hero-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .side-menu {
+      position: fixed;
+      left: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .menu-icon {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      padding: 10px;
+    }
+
+    .menu-icon span {
+      display: block;
+      width: 25px;
+      height: 2px;
+      background: white;
+      transition: all 0.3s;
+    }
+
+    .menu-icon:hover span {
+      background: #4f46e5;
+    }
+
+    .vertical-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: 14px;
+      letter-spacing: 4px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 500;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 0 20px;
+    }
+
+    .hero-title {
+      font-size: clamp(4rem, 15vw, 12rem);
+      font-weight: 900;
+      letter-spacing: 0.15em;
+      background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.6) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .hero-subtitle {
+      margin-top: 2rem;
+      text-align: center;
+      max-width: 700px;
+    }
+
+    .subtitle-line {
+      font-size: clamp(1rem, 2vw, 1.5rem);
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0.5rem 0;
+      font-weight: 300;
+      letter-spacing: 0.05em;
+    }
+
+    .scroll-progress {
+      position: fixed;
+      bottom: 40px;
+      right: 40px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 15px;
+    }
+
+    .scroll-text {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: rgba(255, 255, 255, 0.5);
+      font-weight: 500;
+    }
+
+    .progress-track {
+      width: 100px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+      transition: width 0.1s ease;
+    }
+
+    .section-counter {
+      font-size: 18px;
+      color: #fff;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .scroll-sections {
+      position: relative;
+      z-index: 5;
+    }
+
+    .content-section {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 20px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .side-menu {
+        left: 20px;
+        gap: 20px;
       }
 
-      /* Base Style Overrides for Premium Feel */
-      body { 
-          font-family: 'Inter', sans-serif; 
-          background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-          background-attachment: fixed;
-          color: white;
+      .vertical-text {
+        font-size: 12px;
+        letter-spacing: 2px;
       }
-      
-      /* Hide scrollbar for Chrome, Safari and Opera */
-      .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+
+      .scroll-progress {
+        bottom: 20px;
+        right: 20px;
+        scale: 0.8;
       }
-      .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+
+      .hero-title {
+        letter-spacing: 0.1em;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
+
+      .subtitle-line {
+        font-size: 1rem;
       }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-      }
-      
-      /* Utilities */
-      .pb-safe {
-          padding-bottom: env(safe-area-inset-bottom);
-      }
-    </style>
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -144,7 +371,13 @@
 }
 </script>
 </head>
-  <body class="transition-colors duration-500">
-    <div id="root"></div>
-  </body>
+
+<body class="transition-colors duration-500">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+
+
+
+</body>
+
 </html>

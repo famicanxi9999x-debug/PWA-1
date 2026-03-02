@@ -2,14 +2,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 // API Key must be obtained exclusively from process.env.API_KEY.
-// Assume it is valid and accessible.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Gracefully handle if not available - use fallback responses
+const API_KEY = typeof process !== 'undefined' && process.env?.API_KEY ? process.env.API_KEY : '';
+const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
+
 
 // Helper to check if an error is related to quota/rate limits
 const isQuotaError = (error: any): boolean => {
   return (
-    error?.status === 429 || 
-    error?.code === 429 || 
+    error?.status === 429 ||
+    error?.code === 429 ||
     (error?.message && error.message.includes('429')) ||
     (error?.status === 'RESOURCE_EXHAUSTED') ||
     (error?.error?.code === 429) ||
@@ -19,6 +21,9 @@ const isQuotaError = (error: any): boolean => {
 
 // Helper for robust API calls with retry and exponential backoff
 async function generateWithRetry(model: string, contents: any, config: any = {}, retries = 3, initialDelay = 2000) {
+  if (!ai) {
+    throw new Error('AI_NOT_INITIALIZED');
+  }
   let delay = initialDelay;
   for (let i = 0; i < retries; i++) {
     try {
@@ -56,11 +61,13 @@ export const generateTaskBreakdown = async (taskTitle: string): Promise<string[]
       return JSON.parse(jsonStr);
     }
     return [];
-  } catch (error) {
-    if (isQuotaError(error)) {
-        console.warn("Gemini Service: Quota exceeded for task breakdown. Returning fallback.");
+  } catch (error: any) {
+    if (error?.message === 'AI_NOT_INITIALIZED') {
+      console.info("Gemini Breakdown: AI not configured, using local fallback.");
+    } else if (isQuotaError(error)) {
+      console.warn("Gemini Service: Quota exceeded for task breakdown. Returning fallback.");
     } else {
-        console.error("Gemini Breakdown Error:", error);
+      console.error("Gemini Breakdown Error:", error);
     }
     // Robust fallback
     return ["Analyze requirements", "Draft initial outline", "Review and refine"];
@@ -74,10 +81,13 @@ export const suggestDailyPlan = async (tasks: string[], timeOfDay: string): Prom
       `I have these tasks: ${tasks.join(', ')}. It is currently ${timeOfDay}. Suggest a brief, 2-sentence strategy for my session.`
     );
     return response.text || "Prioritize the hardest task first.";
-  } catch (error) {
-    if (isQuotaError(error)) {
-        console.warn("Gemini Service: Quota exceeded for daily plan. Returning fallback.");
-        return "Focus on your top priority task. (AI currently unavailable due to high traffic)";
+  } catch (error: any) {
+    if (error?.message === 'AI_NOT_INITIALIZED') {
+      console.info("Gemini Planner: AI not configured, using local fallback.");
+      return "Focus on your top priority task. (AI not configured)";
+    } else if (isQuotaError(error)) {
+      console.warn("Gemini Service: Quota exceeded for daily plan. Returning fallback.");
+      return "Focus on your top priority task. (AI currently unavailable due to high traffic)";
     }
     console.error("Gemini Planner Error:", error);
     return "Focus on your top priority task. (AI currently unavailable)";
@@ -104,26 +114,28 @@ export const analyzeNoteContent = async (content: string): Promise<{ tags: strin
         }
       }
     );
-    
+
     const jsonStr = response.text?.trim();
     return jsonStr ? JSON.parse(jsonStr) : { tags: ['SmartTag'], context: 'General' };
-  } catch (error) {
-    if (isQuotaError(error)) {
-        console.warn("Gemini Service: Quota exceeded for note analysis.");
+  } catch (error: any) {
+    if (error?.message === 'AI_NOT_INITIALIZED') {
+      console.info("Gemini Tagging: AI not configured, using manual tags.");
+    } else if (isQuotaError(error)) {
+      console.warn("Gemini Service: Quota exceeded for note analysis.");
     } else {
-        console.error("Gemini Tagging Error:", error);
+      console.error("Gemini Tagging Error:", error);
     }
     return { tags: ['Manual'], context: 'General' };
   }
 };
 
 // Voice-to-Action: Parses transcript to decide if it's a Task or Note, and extracts details
-export const parseVoiceInput = async (transcript: string): Promise<{ 
-  type: 'TASK' | 'NOTE', 
-  title: string, 
+export const parseVoiceInput = async (transcript: string): Promise<{
+  type: 'TASK' | 'NOTE',
+  title: string,
   details?: string,
   tags?: string[],
-  dueDate?: string 
+  dueDate?: string
 }> => {
   try {
     const response = await generateWithRetry(
@@ -151,20 +163,22 @@ export const parseVoiceInput = async (transcript: string): Promise<{
     const jsonStr = response.text?.trim();
     // Default fallback structure if parsing fails but string exists
     if (jsonStr) {
-      return JSON.parse(jsonStr) as { 
-        type: 'TASK' | 'NOTE', 
-        title: string, 
+      return JSON.parse(jsonStr) as {
+        type: 'TASK' | 'NOTE',
+        title: string,
         details?: string,
         tags?: string[],
-        dueDate?: string 
+        dueDate?: string
       };
     }
     return { type: 'NOTE', title: transcript, tags: ['Voice'] };
-  } catch (error) {
-    if (isQuotaError(error)) {
-        console.warn("Gemini Service: Quota exceeded for voice parsing.");
+  } catch (error: any) {
+    if (error?.message === 'AI_NOT_INITIALIZED') {
+      console.info("Gemini Voice: AI not configured, defaulting to note parsing.");
+    } else if (isQuotaError(error)) {
+      console.warn("Gemini Service: Quota exceeded for voice parsing.");
     } else {
-        console.error("Gemini Voice Parse Error:", error);
+      console.error("Gemini Voice Parse Error:", error);
     }
     return { type: 'NOTE', title: transcript, tags: ['Voice', 'Raw'] };
   }

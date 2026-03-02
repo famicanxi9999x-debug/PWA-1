@@ -19,12 +19,23 @@ export interface Task {
   priority?: 'high' | 'medium' | 'low';
   subtasks?: Task[];
   dueDate?: Date;
+  dependencies?: string[]; // Array of task IDs this task depends on
+  tags?: string[];
+  estimatedTime?: number; // In minutes
+  recurrence?: {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+    interval: number; // Every X days/weeks/months
+    endDate?: Date;
+    daysOfWeek?: number[]; // For weekly: 0-6 (Sunday-Saturday)
+  };
 }
 
 export interface Folder {
   id: string;
   name: string;
   icon?: string;
+  color?: string; // Folder color for visual organization
+  parentId?: string; // For nested folders
   type: 'system' | 'user'; // 'system' folders cannot be deleted (e.g., Inbox)
 }
 
@@ -32,8 +43,11 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  contentType?: 'plaintext' | 'html'; // For backward compatibility
   tags: string[];
   folderId: string;
+  coverImage?: string;
+  icon?: string;
   isFavorite: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +75,8 @@ export interface CalendarEvent {
   end: Date;
   type: 'work' | 'class' | 'personal';
   description?: string;
+  color?: string;
+  priority?: 'high' | 'medium' | 'low';
 }
 
 export interface FocusSettings {

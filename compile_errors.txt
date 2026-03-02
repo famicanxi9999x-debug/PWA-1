@@ -1,0 +1,2 @@
+components/SecondBrain.tsx(15,24): error TS2307: Cannot find module '../lib/aiClient' or its corresponding type declarations.
+components/ui/RichTextEditor.tsx(18,24): error TS2307: Cannot find module '../../lib/aiClient' or its corresponding type declarations.
