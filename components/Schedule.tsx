@@ -515,30 +515,70 @@ export const Schedule: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
-                                        <input
-                                            type="time"
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                            value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
-                                            onChange={e => {
-                                                const [h, m] = e.target.value.split(':');
-                                                setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
-                                            }}
-                                            required
-                                        />
+                                <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
+                                            <input
+                                                type="time"
+                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
+                                                value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
+                                                onChange={e => {
+                                                    const [h, m] = e.target.value.split(':');
+                                                    setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
+                                                }}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">End Time</label>
+                                            <input
+                                                type="time"
+                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
+                                                value={(() => {
+                                                    const endH = newEventData.startHour + newEventData.duration;
+                                                    return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`;
+                                                })()}
+                                                onChange={e => {
+                                                    const [h, m] = e.target.value.split(':');
+                                                    const endHour = parseInt(h) + (parseInt(m) / 60);
+                                                    const dur = Math.max(0.25, endHour - newEventData.startHour);
+                                                    setNewEventData({ ...newEventData, duration: dur });
+                                                }}
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Duration</label>
-                                        <select
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                            value={newEventData.duration}
-                                            onChange={e => setNewEventData({ ...newEventData, duration: parseFloat(e.target.value) })}
-                                        >
-                                            {[0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6].map(h => <option key={h} value={h} className="bg-gray-900">{h}h</option>)}
-                                        </select>
+                                    {/* Duration quick-pick chips (Google Calendar style) */}
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        {[
+                                            { label: '15m', val: 0.25 },
+                                            { label: '30m', val: 0.5 },
+                                            { label: '45m', val: 0.75 },
+                                            { label: '1h', val: 1 },
+                                            { label: '1.5h', val: 1.5 },
+                                            { label: '2h', val: 2 },
+                                            { label: '3h', val: 3 },
+                                            { label: '4h', val: 4 },
+                                            { label: '6h', val: 6 },
+                                            { label: '8h', val: 8 },
+                                        ].map(({ label, val }) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                onClick={() => setNewEventData({ ...newEventData, duration: val })}
+                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === val
+                                                    ? 'bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/30'
+                                                    : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
                                     </div>
+                                    <p className="text-[10px] text-white/30 pt-0.5">
+                                        Duration: {newEventData.duration < 1 ? `${Math.round(newEventData.duration * 60)}m` : `${newEventData.duration}h`}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -645,30 +685,70 @@ export const Schedule: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
-                                        <input
-                                            type="time"
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                            value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
-                                            onChange={e => {
-                                                const [h, m] = e.target.value.split(':');
-                                                setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
-                                            }}
-                                            required
-                                        />
+                                <div className="space-y-2">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
+                                            <input
+                                                type="time"
+                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
+                                                value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
+                                                onChange={e => {
+                                                    const [h, m] = e.target.value.split(':');
+                                                    setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
+                                                }}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">End Time</label>
+                                            <input
+                                                type="time"
+                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
+                                                value={(() => {
+                                                    const endH = newEventData.startHour + newEventData.duration;
+                                                    return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`;
+                                                })()}
+                                                onChange={e => {
+                                                    const [h, m] = e.target.value.split(':');
+                                                    const endHour = parseInt(h) + (parseInt(m) / 60);
+                                                    const dur = Math.max(0.25, endHour - newEventData.startHour);
+                                                    setNewEventData({ ...newEventData, duration: dur });
+                                                }}
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Duration</label>
-                                        <select
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                            value={newEventData.duration}
-                                            onChange={e => setNewEventData({ ...newEventData, duration: parseFloat(e.target.value) })}
-                                        >
-                                            {[0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6].map(h => <option key={h} value={h} className="bg-[#111113]">{h}h</option>)}
-                                        </select>
+                                    {/* Duration chips */}
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        {[
+                                            { label: '15m', val: 0.25 },
+                                            { label: '30m', val: 0.5 },
+                                            { label: '45m', val: 0.75 },
+                                            { label: '1h', val: 1 },
+                                            { label: '1.5h', val: 1.5 },
+                                            { label: '2h', val: 2 },
+                                            { label: '3h', val: 3 },
+                                            { label: '4h', val: 4 },
+                                            { label: '6h', val: 6 },
+                                            { label: '8h', val: 8 },
+                                        ].map(({ label, val }) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                onClick={() => setNewEventData({ ...newEventData, duration: val })}
+                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === val
+                                                        ? 'bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/30'
+                                                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
+                                                    }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
                                     </div>
+                                    <p className="text-[10px] text-white/30 pt-0.5">
+                                        Duration: {newEventData.duration < 1 ? `${Math.round(newEventData.duration * 60)}m` : `${newEventData.duration}h`}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-4">
