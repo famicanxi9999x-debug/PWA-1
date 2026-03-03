@@ -215,8 +215,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
     return (
         <div className="rich-text-editor w-full group/editor">
-            {/* Toolbar - Appears sticky but very clean */}
-            <div className="sticky top-0 z-10 flex flex-wrap gap-1 py-2 bg-[#16181D]/90 backdrop-blur-md border border-[#2A2D35] rounded-lg mb-8 opacity-70 hover:opacity-100 transition-opacity duration-300 px-3 shadow-sm">
+            {/* Toolbar - horizontal scrollable on mobile */}
+            <div className="sticky top-0 z-10 flex items-center gap-1 py-2 bg-[#16181D]/90 backdrop-blur-md border border-[#2A2D35] rounded-lg mb-8 opacity-70 hover:opacity-100 transition-opacity duration-300 px-3 shadow-sm overflow-x-auto flex-nowrap custom-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
                 {/* Text Formatting */}
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBold().run()}

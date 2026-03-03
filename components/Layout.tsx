@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../store';
 import { AppView } from '../types';
-import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database } from 'lucide-react';
+import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database, Plus, FileText, ListTodo, Mic } from 'lucide-react';
 import ExpandOnHover from './ui/expand-cards';
 import { aiCall } from '../lib/aiClient';
 import { supabase } from '../lib/supabase';
@@ -31,6 +31,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const [showSupabaseTest, setShowSupabaseTest] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [isOffline, setIsOffline] = useState(!navigator.onLine);
+    const [showQuickAdd, setShowQuickAdd] = useState(false);
+    const [quickAddType, setQuickAddType] = useState<'task' | 'note'>('task');
+    const [quickAddText, setQuickAddText] = useState('');
 
     // PWA Install Prompt Listener
     useEffect(() => {
@@ -344,8 +347,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </nav>
 
             {/* MOBILE BOTTOM NAV */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(5rem+env(safe-area-inset-bottom))] bg-[#111113]/95 backdrop-blur-xl border-t border-[#2A2D35] flex items-start justify-around px-2 z-50 pt-2 pb-[env(safe-area-inset-bottom)]">
-                {[AppView.DASHBOARD, AppView.SCHEDULE, AppView.FOCUS, AppView.NOTES].map((target) => {
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#111113]/98 backdrop-blur-xl border-t border-[#2A2D35] flex items-center justify-around px-1 z-50"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: '8px', minHeight: 'calc(4rem + env(safe-area-inset-bottom))' }}>
+                {([AppView.DASHBOARD, AppView.FOCUS, AppView.NOTES, AppView.PROJECTS, AppView.SCHEDULE] as AppView[]).map((target) => {
                     const item = menuGroups.flatMap(g => g.items).find(i => i.target === target);
                     if (!item) return null;
                     const isActive = view === item.target;
@@ -353,28 +357,103 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                         <button
                             key={item.label}
                             onClick={() => setView(item.target)}
-                            className="flex flex-col items-center gap-1 p-2 w-full"
+                            className="flex flex-col items-center gap-0.5 py-1 px-2 flex-1 relative"
                         >
-                            <div className={`
-                        w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-300
-                        ${isActive
-                                    ? 'bg-[#1E2532] text-[#60A5FA] border border-[#2A3F5C]'
-                                    : 'text-white/40'
-                                }
-                     `}>
-                                <item.icon size={20} strokeWidth={2} />
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 ${isActive ? 'bg-indigo-500/20 text-indigo-400' : 'text-white/40'
+                                }`}>
+                                <item.icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
                             </div>
+                            <span className={`text-[10px] font-semibold transition-colors ${isActive ? 'text-indigo-400' : 'text-white/30'
+                                }`}>{item.label}</span>
+                            {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-indigo-400 rounded-full" />}
                         </button>
-                    )
+                    );
                 })}
-                {/* Mobile FAB */}
-                <button
-                    onClick={() => setCommandPaletteOpen(true)}
-                    className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 w-12 h-12 bg-[#1E2532] border border-[#2A3F5C] rounded-lg flex items-center justify-center text-[#60A5FA] shadow-lg md:hidden hover:bg-[#252E3E]"
-                >
-                    <Search size={20} />
-                </button>
             </nav>
+
+            {/* Quick Add FAB — Always visible on mobile */}
+            <button
+                className="md:hidden fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-[60] w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl shadow-indigo-500/40 flex items-center justify-center text-white border border-white/20 active:scale-95 transition-transform"
+                onClick={() => { setShowQuickAdd(true); setQuickAddText(''); }}
+                aria-label="Quick Add"
+            >
+                <Plus size={26} strokeWidth={2.5} />
+            </button>
+
+            {/* Quick Add Bottom Sheet */}
+            {showQuickAdd && (
+                <div className="md:hidden fixed inset-0 z-[70]" onClick={() => setShowQuickAdd(false)}>
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                    <div
+                        className="absolute bottom-0 left-0 right-0 bg-[#16181D] rounded-t-3xl border-t border-[#2A2D35] p-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] animate-slide-up"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Handle bar */}
+                        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
+
+                        {/* Type selector */}
+                        <div className="flex gap-2 mb-5">
+                            <button
+                                onClick={() => setQuickAddType('task')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${quickAddType === 'task'
+                                        ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/30'
+                                        : 'bg-white/5 text-white/50 border border-white/10'
+                                    }`}
+                            >
+                                <ListTodo size={15} /> Task
+                            </button>
+                            <button
+                                onClick={() => setQuickAddType('note')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${quickAddType === 'note'
+                                        ? 'bg-purple-500 text-white shadow-md shadow-purple-500/30'
+                                        : 'bg-white/5 text-white/50 border border-white/10'
+                                    }`}
+                            >
+                                <FileText size={15} /> Note
+                            </button>
+                        </div>
+
+                        {/* Input */}
+                        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 mb-4">
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder={quickAddType === 'task' ? 'What needs to be done?' : 'Capture a thought...'}
+                                className="flex-1 bg-transparent text-white placeholder:text-white/30 focus:outline-none text-base"
+                                value={quickAddText}
+                                onChange={e => setQuickAddText(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter' && quickAddText.trim()) {
+                                        if (quickAddType === 'task') {
+                                            addTask(quickAddText.trim(), 'medium');
+                                        } else {
+                                            addNote(quickAddText.trim(), '', [], 'inbox');
+                                        }
+                                        setShowQuickAdd(false);
+                                        setQuickAddText('');
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                if (!quickAddText.trim()) return;
+                                if (quickAddType === 'task') {
+                                    addTask(quickAddText.trim(), 'medium');
+                                } else {
+                                    addNote(quickAddText.trim(), '', [], 'inbox');
+                                }
+                                setShowQuickAdd(false);
+                                setQuickAddText('');
+                            }}
+                            className="w-full py-3.5 rounded-2xl bg-indigo-500 text-white font-bold text-base hover:bg-indigo-600 active:scale-95 transition-all shadow-lg shadow-indigo-500/30"
+                        >
+                            Add {quickAddType === 'task' ? 'Task' : 'Note'}
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Main Content Area */}
             <main className="flex-1 relative overflow-y-auto scroll-smooth pb-[calc(theme(spacing.24)+env(safe-area-inset-bottom))] md:pb-0">

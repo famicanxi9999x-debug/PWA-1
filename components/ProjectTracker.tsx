@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../store';
 import { Task } from '../types';
-import { Trophy, Target, TrendingUp, Star, LayoutList, KanbanSquare, Plus, CheckCircle, Circle, Trash2, Filter, Clock, Tag, Link as LinkIcon } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Star, LayoutList, KanbanSquare, Plus, CheckCircle, Circle, Trash2, Filter, Clock, Tag, Link as LinkIcon, Check } from 'lucide-react';
 import { TaskDetailModal } from './ui/TaskDetailModal';
 
 const priorityColor = (p?: string) => {
@@ -15,61 +15,84 @@ const priorityColor = (p?: string) => {
 
 const TaskCard: React.FC<{ task: Task, onClick: () => void }> = ({ task, onClick }) => {
     const { toggleTask, deleteTask } = useApp();
+    const [swipeX, setSwipeX] = useState(0);
+    const [swiped, setSwiped] = useState(false);
+    const touchStartX = useRef(0);
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+    };
+    const onTouchMove = (e: React.TouchEvent) => {
+        const diff = e.touches[0].clientX - touchStartX.current;
+        if (diff > 0 && diff < 90) setSwipeX(diff);
+    };
+    const onTouchEnd = () => {
+        if (swipeX > 60 && !task.completed) {
+            setSwiped(true);
+            setTimeout(() => { toggleTask(task.id); setSwiped(false); setSwipeX(0); }, 350);
+        } else {
+            setSwipeX(0);
+        }
+    };
+
     return (
-        <div
-            onClick={onClick}
-            className={`group cursor-pointer bg-white/5 p-4 rounded-md border border-white/5 hover:border-white/20 hover:bg-white/10 transition-all ${task.completed ? 'opacity-50' : ''}`}
-        >
-            <div className="flex items-start gap-3">
-                <button
-                    onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
-                    className="mt-0.5 text-white/30 hover:text-indigo-400 transition-colors"
-                >
-                    {task.completed ? <CheckCircle size={20} className="text-green-400" /> : <Circle size={20} />}
-                </button>
-                <div className="flex-1 min-w-0">
-                    <h4 className={`text-sm font-medium text-white truncate ${task.completed ? 'line-through text-white/40' : ''}`}>{task.title}</h4>
+        <div className="relative overflow-hidden rounded-xl">
+            {/* Green swipe-reveal layer (Todoist-style) */}
+            <div
+                className="absolute inset-y-0 left-0 flex items-center bg-green-500 rounded-xl transition-all"
+                style={{ width: `${Math.max(swipeX, swiped ? 100 : 0)}%`, opacity: swipeX > 10 || swiped ? 1 : 0 }}
+            >
+                <Check size={20} className="text-white ml-4" />
+            </div>
 
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {task.priority && (
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wider font-bold ${priorityColor(task.priority)}`}>
-                                {task.priority}
-                            </span>
-                        )}
-                        {task.context && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 bg-white/5 text-white/60 uppercase tracking-wider">
-                                {task.context}
-                            </span>
-                        )}
-
-                        {task.estimatedTime && (
-                            <span className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 text-white/40 border border-white/5">
-                                <Clock size={10} /> {task.estimatedTime}m
-                            </span>
-                        )}
-
-                        {task.dependencies && task.dependencies.length > 0 && (
-                            <span className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500/80 border border-amber-500/20">
-                                <LinkIcon size={10} /> {task.dependencies.length}
-                            </span>
-                        )}
-
-                        {task.tags?.slice(0, 2).map(tag => (
-                            <span key={tag} className="text-[10px] flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 truncate max-w-[80px]">
-                                <Tag size={10} className="shrink-0" /> <span className="truncate">{tag}</span>
-                            </span>
-                        ))}
-                        {task.tags && task.tags.length > 2 && (
-                            <span className="text-[10px] text-white/30 ml-1">+{task.tags.length - 2}</span>
+            <div
+                onClick={onClick}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+                style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}
+                className={`group cursor-pointer bg-[#16181D] border border-white/[0.07] rounded-xl hover:border-white/20 hover:bg-white/5 transition-all active:bg-white/10 ${task.completed ? 'opacity-40' : ''
+                    }`}
+            >
+                <div className="flex items-center gap-2.5 px-3 py-2.5">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); toggleTask(task.id); }}
+                        className="shrink-0 text-white/30 hover:text-indigo-400 transition-colors"
+                    >
+                        {task.completed
+                            ? <CheckCircle size={18} className="text-green-400" />
+                            : <Circle size={18} />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm font-medium truncate ${task.completed ? 'line-through text-white/30' : 'text-white/90'
+                            }`}>{task.title}</h4>
+                        {(task.priority || task.context) && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                                {task.priority && (
+                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide ${priorityColor(task.priority)}`}>
+                                        {task.priority}
+                                    </span>
+                                )}
+                                {task.context && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-white/40 border border-white/10 uppercase tracking-wide">
+                                        {task.context}
+                                    </span>
+                                )}
+                                {task.tags?.slice(0, 1).map(tag => (
+                                    <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 truncate max-w-[60px]">
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </div>
                         )}
                     </div>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                        className="opacity-0 group-hover:opacity-100 shrink-0 p-1 text-white/20 hover:text-red-400 transition-all rounded"
+                    >
+                        <Trash2 size={14} />
+                    </button>
                 </div>
-                <button
-                    onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
-                    className="opacity-0 group-hover:opacity-100 shrink-0 p-1 text-white/30 hover:text-red-400 transition-opacity rounded hover:bg-white/5"
-                >
-                    <Trash2 size={16} />
-                </button>
             </div>
         </div>
     );

@@ -54,7 +54,7 @@ const getHolidaysForDate = (date: Date): string[] => {
 export const Schedule: React.FC = () => {
     const { events, addEvent, updateEvent, deleteEvent, shiftFutureEvents, contextFilter, setContextFilter, tasks, toggleTask, updateTask } = useApp();
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [view, setView] = useState<'day' | 'week'>('week');
+    const [view, setView] = useState<'day' | 'week'>(window.innerWidth < 768 ? 'day' : 'week');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [currentTime, setCurrentTime] = useState(new Date());
     const [showAddModal, setShowAddModal] = useState(false);
@@ -301,7 +301,8 @@ export const Schedule: React.FC = () => {
 
                     {/* Dynamic Schedule Controls */}
                     <div className="flex items-center gap-3">
-                        <div className="flex bg-white/5 rounded-lg p-1 border border-white/5 hidden sm:flex">
+                        {/* View toggle: Day/Week - always visible */}
+                        <div className="flex bg-white/5 rounded-lg p-1 border border-white/5">
                             <button onClick={() => setView('day')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'day' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/50 hover:text-white hover:bg-white/10'}`}>Day</button>
                             <button onClick={() => setView('week')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${view === 'week' ? 'bg-indigo-600 text-white shadow-md' : 'text-white/50 hover:text-white hover:bg-white/10'}`}>Week</button>
                         </div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Play, Pause, RefreshCw, Volume2, Maximize2, Minimize2, CheckCircle, Headphones, Settings, X, Save, History, Timer } from 'lucide-react';
+import { Play, Pause, RefreshCw, Volume2, Maximize2, Minimize2, CheckCircle, Headphones, Settings, X, Save, History, Timer, Minimize } from 'lucide-react';
 import { useApp } from '../store';
 
 export const FocusHub: React.FC = () => {
@@ -10,6 +10,7 @@ export const FocusHub: React.FC = () => {
     const [timeLeft, setTimeLeft] = useState(focusSettings.focusDuration * 60);
     const [isActive, setIsActive] = useState(false);
     const [isZenMode, setIsZenMode] = useState(false);
+    const [isMobileFullscreen, setIsMobileFullscreen] = useState(false);
     const [activeSound, setActiveSound] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
@@ -91,6 +92,97 @@ export const FocusHub: React.FC = () => {
     };
 
     const activeTask = tasks.find(t => !t.completed && t.priority === 'high');
+    const totalDuration = sessionType === 'focus' ? focusSettings.focusDuration * 60
+        : sessionType === 'shortBreak' ? focusSettings.shortBreakDuration * 60
+            : focusSettings.longBreakDuration * 60;
+    const progressPercent = Math.round(((totalDuration - timeLeft) / totalDuration) * 100);
+
+    // Mobile fullscreen mode — auto-triggers when timer starts
+    const handleStartTimer = () => {
+        setIsActive(true);
+        if (window.innerWidth < 768) {
+            setIsMobileFullscreen(true);
+        }
+    };
+
+    // Mobile Fullscreen Timer Overlay
+    if (isMobileFullscreen) {
+        return (
+            <div className="fixed inset-0 z-[200] bg-[#0a0a0f] flex flex-col items-center justify-center gap-8" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingTop: 'env(safe-area-inset-top)' }}>
+
+                {/* Glow blur behind clock */}
+                <div className={`absolute w-80 h-80 rounded-full blur-[120px] opacity-20 pointer-events-none transition-colors ${sessionType === 'focus' ? 'bg-indigo-500' : 'bg-green-400'
+                    } ${isActive ? 'animate-pulse' : ''}`} />
+
+                {/* Session type pill */}
+                <div className={`px-5 py-2 rounded-full text-sm font-bold uppercase tracking-widest ${sessionType === 'focus' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                    : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                    }`}>
+                    {sessionType === 'focus' ? '🎯 Focus' : sessionType === 'shortBreak' ? '☕ Short Break' : '🛌 Long Break'}
+                </div>
+
+                {/* Clock */}
+                <div className="relative">
+                    <svg className="w-64 h-64 -rotate-90" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#ffffff10" strokeWidth="3" />
+                        <circle
+                            cx="50" cy="50" r="45" fill="none"
+                            stroke={sessionType === 'focus' ? '#818CF8' : '#6EE7B7'}
+                            strokeWidth="3" strokeLinecap="round"
+                            strokeDasharray={`${2 * Math.PI * 45}`}
+                            strokeDashoffset={`${2 * Math.PI * 45 * (1 - progressPercent / 100)}`}
+                            className="transition-all duration-1000"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-6xl font-bold tracking-tight tabular-nums text-white">{formatTime(timeLeft)}</span>
+                        <span className="text-sm text-white/40 mt-1">{isActive ? 'Stay in flow...' : 'Ready'}</span>
+                    </div>
+                </div>
+
+                {/* Active task */}
+                {activeTask && sessionType === 'focus' && (
+                    <div className="px-6 py-3 bg-white/5 rounded-2xl border border-white/10 max-w-[80vw]">
+                        <p className="text-xs text-white/40 text-center mb-1">Current task</p>
+                        <p className="text-sm text-white font-medium text-center truncate">{activeTask.title}</p>
+                    </div>
+                )}
+
+                {/* Controls */}
+                <div className="flex items-center gap-5">
+                    <button
+                        onClick={() => { setIsActive(false); const d = sessionType === 'focus' ? focusSettings.focusDuration : sessionType === 'shortBreak' ? focusSettings.shortBreakDuration : focusSettings.longBreakDuration; setTimeLeft(d * 60); }}
+                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white"
+                    >
+                        <RefreshCw size={22} />
+                    </button>
+                    <button
+                        onClick={() => setIsActive(p => !p)}
+                        className={`w-20 h-20 rounded-full flex items-center justify-center transition-transform active:scale-95 shadow-2xl ${isActive ? 'bg-amber-500 shadow-amber-500/30' : 'bg-indigo-500 shadow-indigo-500/40'
+                            }`}
+                    >
+                        {isActive ? <Pause size={32} fill="white" className="text-white" /> : <Play size={32} fill="white" className="text-white ml-1" />}
+                    </button>
+                    <button
+                        onClick={() => setIsMobileFullscreen(false)}
+                        className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white"
+                    >
+                        <Minimize size={22} />
+                    </button>
+                </div>
+
+                {/* Session pickers */}
+                <div className="flex gap-2">
+                    {(['focus', 'shortBreak', 'longBreak'] as const).map(t => (
+                        <button key={t} onClick={() => switchSession(t)} className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${sessionType === t ? 'bg-white/20 text-white' : 'text-white/30 hover:text-white'
+                            }`}>
+                            {t === 'focus' ? 'Focus' : t === 'shortBreak' ? 'Short' : 'Long'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`h-full flex flex-col transition-all duration-700 ${isZenMode ? 'fixed inset-0 z-50 bg-[#0f0f1a] text-white p-12' : 'p-6 max-w-4xl mx-auto bg-transparent'}`}>
@@ -185,7 +277,7 @@ export const FocusHub: React.FC = () => {
                 {/* Controls */}
                 <div className="flex items-center gap-6">
                     <button
-                        onClick={() => setIsActive(!isActive)}
+                        onClick={() => isActive ? setIsActive(false) : handleStartTimer()}
                         className={`w-16 h-16 rounded-md flex items-center justify-center transition-all transform hover:scale-105 ${isActive ? 'bg-[#2D2A26] text-[#FBBF24] border border-[#453A2A]' : 'bg-[#1E2532] text-white border border-[#2A3F5C] shadow-sm'}`}
                     >
                         {isActive ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
