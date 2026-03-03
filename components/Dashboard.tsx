@@ -30,7 +30,7 @@ export const Dashboard: React.FC = () => {
         <div className="max-w-6xl mx-auto space-y-8 animate-fade-in text-white py-4">
 
             {/* Welcome Header */}
-            <div className="flex flex-col md:flex-row justify-between items-end border-b border-white/10 pb-6 gap-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-white/10 pb-6 gap-6">
                 <div>
                     <span className="inline-block px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-indigo-300 text-[11px] font-bold uppercase tracking-widest mb-3">
                         Workspace Hub
@@ -55,7 +55,7 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Action Widgets Hub — 2×2 Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
 
                 {/* 1. Focus & Tasks */}
                 <div className="cursor-pointer" onClick={() => setView(AppView.PROJECTS)}>

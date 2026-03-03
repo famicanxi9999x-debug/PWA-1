@@ -212,16 +212,16 @@ export const ProjectTracker: React.FC = () => {
                                 )}
                             </div>
                         ) : (
-                            <div className="flex-1 overflow-x-auto overflow-y-hidden flex gap-6 pb-2">
+                            <div className="flex-1 overflow-x-auto overflow-y-hidden flex gap-4 pb-4 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                 {['work', 'personal', 'learning'].map(ctx => (
-                                    <div key={ctx} className="flex-1 min-w-[300px] flex flex-col bg-white/5 rounded-md border border-white/5 p-4">
-                                        <div className="flex items-center justify-between mb-4">
+                                    <div key={ctx} className="flex-none w-[85vw] max-w-[320px] sm:flex-1 min-w-[280px] h-[calc(100vh-280px)] min-h-[400px] flex flex-col bg-white/5 rounded-md border border-white/5 p-4 snap-center">
+                                        <div className="flex items-center justify-between mb-4 shrink-0">
                                             <h3 className="font-bold text-white/60 uppercase tracking-wider text-sm">{ctx}</h3>
                                             <span className="bg-white/10 text-white/80 px-2 py-0.5 rounded-full text-xs font-bold">
                                                 {tasks.filter(t => t.context === ctx && !t.completed).length}
                                             </span>
                                         </div>
-                                        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                                        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 pb-4">
                                             {tasks.filter(t => t.context === ctx).map(task => (
                                                 <TaskCard key={task.id} task={task} onClick={() => setSelectedTask(task)} />
                                             ))}

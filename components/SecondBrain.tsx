@@ -150,8 +150,22 @@ export const SecondBrain: React.FC = () => {
         if (selectedNote) {
             setEditorTitle(selectedNote.title);
             setEditorContent(selectedNote.content);
+            // Close mobile sidebar automatically when a note is picked
+            if (window.innerWidth < 768) {
+                setSidebarOpen(false);
+            }
         }
     }, [selectedNoteId, selectedNote]);
+
+    // Lock body scroll when mobile sidebar is open
+    useEffect(() => {
+        if (sidebarOpen && window.innerWidth < 768) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [sidebarOpen]);
 
     // -- HANDLERS --
 
@@ -469,14 +483,34 @@ export const SecondBrain: React.FC = () => {
     return (
         <div className="h-full flex overflow-hidden bg-[#16181D] text-white font-sans rounded-md border border-[#2A2D35]">
 
+            {/* Mobile Sidebar Overlay Backdrop */}
+            {sidebarOpen && (
+                <div
+                    className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] animate-fade-in"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* 1. SIDEBAR NAVIGATION */}
-            <div className={`${sidebarOpen ? 'w-80 opacity-100' : 'w-0 opacity-0'} bg-black/30 backdrop-blur-xl border-r border-white/10 flex flex-col transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0`}>
+            <div className={`
+                fixed md:relative top-0 bottom-0 left-0 z-[100] md:z-auto
+                w-[85vw] max-w-[340px] md:w-80 h-full
+                bg-black/90 md:bg-black/30 backdrop-blur-2xl md:backdrop-blur-xl 
+                border-r border-white/10 flex flex-col transition-transform duration-300 ease-spring
+                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                ${!sidebarOpen ? 'md:w-0 md:opacity-0 overflow-hidden md:border-none' : 'opacity-100'}
+                flex-shrink-0
+            `}>
                 {/* Header */}
-                <div className="h-16 flex items-center px-6 border-b border-white/10">
+                <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
                     <div className="flex items-center gap-3 text-white/90 font-bold text-lg">
                         <div className="w-8 h-8 rounded bg-[#111113] text-white/80 border border-[#2A2D35] flex items-center justify-center text-sm font-bold">N</div>
                         <span>Notes</span>
                     </div>
+                    {/* Mobile Close Button */}
+                    <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                        <ChevronRight size={20} />
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-6 space-y-8 scrollbar-hide px-4">
@@ -571,12 +605,16 @@ export const SecondBrain: React.FC = () => {
             </div>
 
             {/* 2. MAIN AREA */}
-            <div className="flex-1 flex flex-col min-w-0 bg-transparent relative">
+            <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative transition-all ${!sidebarOpen ? 'md:pl-0' : ''}`}>
 
                 {/* Top Toolbar (Sticky) */}
-                <div className="h-16 border-b border-white/10 flex items-center justify-between px-6 sticky top-0 bg-black/20 backdrop-blur-xl z-10">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-white/40 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
+                <div className="h-16 border-b border-white/10 flex items-center justify-between px-3 md:px-6 sticky top-0 bg-black/20 backdrop-blur-xl z-10 pt-[env(safe-area-inset-top)]">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        {/* Always show Menu button on mobile, toggle button on desktop */}
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className={`p-2 hover:bg-white/10 rounded-lg transition-colors ${sidebarOpen ? 'text-white/40 hidden md:block' : 'text-white md:text-white/40'}`}
+                        >
                             <LayoutGrid size={22} />
                         </button>
 
@@ -595,24 +633,24 @@ export const SecondBrain: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <div className="relative group">
+                        <div className="relative group flex-1 md:flex-none">
                             <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40 group-hover:text-indigo-400 transition-colors" />
                             <input
                                 id="note-search"
                                 type="text"
-                                placeholder="Search..."
-                                className="pl-9 pr-3 py-1.5 bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10 focus:bg-white/10 focus:border-indigo-500 rounded-full text-sm focus:outline-none w-40 transition-all focus:w-64 text-white placeholder:text-white/30"
+                                placeholder="Search notes..."
+                                className="pl-9 pr-3 py-1.5 bg-white/5 border border-transparent hover:bg-white/10 hover:border-white/10 focus:bg-white/10 focus:border-indigo-500 rounded-full text-sm focus:outline-none w-full md:w-40 transition-all focus:md:w-64 text-white placeholder:text-white/30"
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                             />
                         </div>
 
-                        <div className="w-px h-6 bg-white/10 mx-1"></div>
+                        <div className="w-px h-6 bg-white/10 mx-1 hidden md:block"></div>
 
                         <button
                             onClick={handleVoiceCapture}
                             disabled={isProcessing}
-                            className={`p-2 rounded-full hover:bg-white/10 transition-colors ${isRecording ? 'text-red-400 bg-red-900/20' : 'text-white/50'}`}
+                            className={`p-2 rounded-full hover:bg-white/10 transition-colors hidden md:block ${isRecording ? 'text-red-400 bg-red-900/20' : 'text-white/50'}`}
                             title="Voice Note"
                         >
                             {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <Mic size={18} />}

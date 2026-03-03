@@ -117,7 +117,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     ];
 
     return (
-        <div className="flex flex-col md:flex-row h-screen text-slate-100 overflow-hidden font-sans relative">
+        <div className="flex flex-col md:flex-row h-screen text-slate-100 overflow-hidden font-sans relative pt-[env(safe-area-inset-top)]">
             {isOffline && (
                 <div className="absolute top-0 left-0 right-0 z-[100] bg-amber-600/90 text-white text-xs font-medium py-1.5 px-4 text-center backdrop-blur-sm shadow-md border-b border-amber-500/50 flex items-center justify-center gap-2 animate-slide-down">
                     <Zap size={14} className="fill-amber-200 text-amber-200" />
@@ -344,7 +344,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </nav>
 
             {/* MOBILE BOTTOM NAV */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-[#111113]/95 backdrop-blur-xl border-t border-[#2A2D35] flex items-center justify-around px-2 z-50 pb-safe">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[calc(5rem+env(safe-area-inset-bottom))] bg-[#111113]/95 backdrop-blur-xl border-t border-[#2A2D35] flex items-start justify-around px-2 z-50 pt-2 pb-[env(safe-area-inset-bottom)]">
                 {[AppView.DASHBOARD, AppView.SCHEDULE, AppView.FOCUS, AppView.NOTES].map((target) => {
                     const item = menuGroups.flatMap(g => g.items).find(i => i.target === target);
                     if (!item) return null;
@@ -370,15 +370,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 {/* Mobile FAB */}
                 <button
                     onClick={() => setCommandPaletteOpen(true)}
-                    className="absolute bottom-6 right-4 w-12 h-12 bg-[#1E2532] border border-[#2A3F5C] rounded-lg flex items-center justify-center text-[#60A5FA] shadow-lg md:hidden hover:bg-[#252E3E]"
+                    className="absolute bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 w-12 h-12 bg-[#1E2532] border border-[#2A3F5C] rounded-lg flex items-center justify-center text-[#60A5FA] shadow-lg md:hidden hover:bg-[#252E3E]"
                 >
                     <Search size={20} />
                 </button>
             </nav>
 
             {/* Main Content Area */}
-            <main className="flex-1 relative overflow-y-auto scroll-smooth">
-                <div className={`h-full ${view === AppView.NOTES ? '' : 'max-w-7xl mx-auto p-6 md:p-10'}`}>
+            <main className="flex-1 relative overflow-y-auto scroll-smooth pb-[calc(theme(spacing.24)+env(safe-area-inset-bottom))] md:pb-0">
+                <div className={`h-full ${view === AppView.NOTES ? '' : 'max-w-7xl mx-auto p-4 md:p-10'}`}>
                     {children}
                 </div>
             </main>
