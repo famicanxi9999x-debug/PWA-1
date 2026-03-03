@@ -125,16 +125,55 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     });
 
     const addImage = () => {
-        const url = window.prompt('Image URL:');
-        if (url && editor) {
-            editor.chain().focus().setImage({ src: url }).run();
-        }
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e: Event) => {
+            const target = e.target as HTMLInputElement;
+            if (target.files && target.files.length > 0) {
+                const file = target.files[0];
+                try {
+                    const url = await uploadAsset(file);
+                    if (editor) {
+                        editor.chain().focus().setImage({ src: url }).run();
+                    }
+                } catch (err) {
+                    console.error("Image upload failed:", err);
+                    alert("Failed to upload image. Please try again.");
+                }
+            }
+        };
+        input.click();
     };
 
     const setLink = () => {
-        const url = window.prompt('URL:');
-        if (url && editor) {
-            editor.chain().focus().setLink({ href: url }).run();
+        // Native file picker for general attachments or a URL prompt
+        const useUpload = window.confirm('Click OK to upload a file from your device, or Cancel to enter a web URL manually.');
+
+        if (useUpload) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.onchange = async (e: Event) => {
+                const target = e.target as HTMLInputElement;
+                if (target.files && target.files.length > 0) {
+                    const file = target.files[0];
+                    try {
+                        const url = await uploadAsset(file);
+                        if (editor) {
+                            editor.chain().focus().setLink({ href: url }).insertContent(file.name).run();
+                        }
+                    } catch (err) {
+                        console.error("File upload failed:", err);
+                        alert("Failed to upload file. Please try again.");
+                    }
+                }
+            };
+            input.click();
+        } else {
+            const url = window.prompt('URL:');
+            if (url && editor) {
+                editor.chain().focus().setLink({ href: url }).run();
+            }
         }
     };
 

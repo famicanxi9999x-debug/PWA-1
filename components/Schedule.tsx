@@ -380,10 +380,10 @@ export const Schedule: React.FC = () => {
                 </div>
 
                 {/* Scrollable Grid Area */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
-                    <div className="flex">
+                <div ref={scrollRef} className="flex-1 overflow-auto custom-scrollbar relative">
+                    <div className="flex min-w-max md:min-w-0">
                         {/* Time Column */}
-                        <div className="w-16 flex-shrink-0 bg-white/5 border-r border-white/5 relative">
+                        <div className="w-16 flex-shrink-0 bg-white/5 border-r border-white/5 relative bg-[#111113] z-10 sticky left-0">
                             {HOURS.map(hour => (
                                 <div key={hour} className="h-20 text-right pr-2 pt-2 text-xs text-white/30 relative border-b border-transparent">
                                     {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}

@@ -202,36 +202,6 @@ export const FocusHub: React.FC = () => {
                         <RefreshCw size={20} />
                     </button>
                 </div>
-
-                {/* Ambient Sound Toggles */}
-                <div className={`flex gap-4 p-4 rounded-md bg-white/5 border border-white/5`}>
-                    <button
-                        onClick={() => toggleSound('rain')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${activeSound === 'rain' ? 'bg-[#1E2532] text-white border border-[#2A3F5C]' : 'text-white/60 hover:bg-white/10 border border-transparent'}`}
-                    >
-                        <Headphones size={16} /> Rain
-                    </button>
-                    <button
-                        onClick={() => toggleSound('cafe')}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${activeSound === 'cafe' ? 'bg-[#1E2532] text-white border border-[#2A3F5C]' : 'text-white/60 hover:bg-white/10 border border-transparent'}`}
-                    >
-                        <Volume2 size={16} /> Lo-Fi
-                    </button>
-                    {/* Hidden Audio Elements */}
-                    <audio
-                        src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=heavy-rain-nature-sounds-8186.mp3"
-                        loop
-                        autoPlay={activeSound === 'rain'}
-                        muted={activeSound !== 'rain'}
-                    />
-                    <audio
-                        src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
-                        loop
-                        autoPlay={activeSound === 'cafe'}
-                        muted={activeSound !== 'cafe'}
-                    />
-                </div>
-
             </div>
 
             {/* Settings Modal */}
