@@ -77,6 +77,10 @@ export interface CalendarEvent {
   description?: string;
   color?: string;
   priority?: 'high' | 'medium' | 'low';
+  allDay?: boolean;
+  location?: string;
+  recurrence?: 'none' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+  reminder?: number; // minutes before event: 0, 5, 10, 15, 30, 60, 120, 1440
 }
 
 export interface FocusSettings {

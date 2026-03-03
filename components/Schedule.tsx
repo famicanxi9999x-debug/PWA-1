@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../store';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon, MapPin, Clock, Edit2, Trash2, X, Palette } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon, MapPin, Clock, Edit2, Trash2, X, Palette, RotateCcw, Bell } from 'lucide-react';
 import { CalendarEvent } from '../types';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i); // 00:00 to 23:00
@@ -62,8 +62,17 @@ export const Schedule: React.FC = () => {
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [draggedEventId, setDraggedEventId] = useState<string | null>(null);
-    const [newEventData, setNewEventData] = useState<{ title: string, description: string, color: string, date: Date, startHour: number, duration: number, type: 'work' | 'class' | 'personal', priority?: 'high' | 'medium' | 'low' }>({
-        title: '', description: '', color: '', date: new Date(), startHour: 9, duration: 1, type: 'work'
+    const [newEventData, setNewEventData] = useState<{
+        title: string; description: string; color: string; date: Date;
+        startHour: number; duration: number; type: 'work' | 'class' | 'personal';
+        priority?: 'high' | 'medium' | 'low';
+        allDay: boolean;
+        location: string;
+        recurrence: 'none' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+        reminder: number; // minutes
+    }>({
+        title: '', description: '', color: '', date: new Date(), startHour: 9,
+        duration: 1, type: 'work', allDay: false, location: '', recurrence: 'none', reminder: 30
     });
 
     useEffect(() => {
@@ -128,14 +137,18 @@ export const Schedule: React.FC = () => {
             start: start,
             end: end,
             type: newEventData.type,
-            priority: newEventData.priority
+            priority: newEventData.priority,
+            allDay: newEventData.allDay,
+            location: newEventData.location || undefined,
+            recurrence: newEventData.recurrence !== 'none' ? newEventData.recurrence : undefined,
+            reminder: newEventData.reminder,
         });
         setShowAddModal(false);
-        setNewEventData({ title: '', description: '', color: '', date: new Date(), startHour: 9, duration: 1, type: 'work' });
+        setNewEventData({ title: '', description: '', color: '', date: new Date(), startHour: 9, duration: 1, type: 'work', allDay: false, location: '', recurrence: 'none', reminder: 30 });
     };
 
     const openAddModal = (date: Date, hour: number) => {
-        setNewEventData({ title: '', description: '', color: '', date: date, startHour: hour, duration: 1, type: 'work' });
+        setNewEventData({ title: '', description: '', color: '', date, startHour: hour, duration: 1, type: 'work', allDay: false, location: '', recurrence: 'none', reminder: 30 });
         setShowAddModal(true);
     };
 
@@ -153,7 +166,11 @@ export const Schedule: React.FC = () => {
             startHour: eventStart.getHours() + (eventStart.getMinutes() / 60),
             duration: durationHours,
             type: event.type,
-            priority: event.priority
+            priority: event.priority,
+            allDay: event.allDay || false,
+            location: event.location || '',
+            recurrence: event.recurrence || 'none',
+            reminder: event.reminder ?? 30,
         });
         setShowEditModal(true);
     };
@@ -175,7 +192,11 @@ export const Schedule: React.FC = () => {
             start: start,
             end: end,
             type: newEventData.type,
-            priority: newEventData.priority
+            priority: newEventData.priority,
+            allDay: newEventData.allDay,
+            location: newEventData.location || undefined,
+            recurrence: newEventData.recurrence !== 'none' ? newEventData.recurrence : undefined,
+            reminder: newEventData.reminder,
         });
 
         setShowEditModal(false);
@@ -494,166 +515,172 @@ export const Schedule: React.FC = () => {
 
                 {/* Add Event Modal */}
                 {showAddModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
-                        <form onSubmit={handleAddSubmit} onClick={(e) => e.stopPropagation()} className="bg-[#111113] rounded-md shadow-sm p-6 w-full max-w-md animate-slide-up border border-[#2A2D35]">
-                            <h3 className="text-xl font-bold text-white mb-5 flex items-center gap-2">
-                                <Plus size={20} className="text-indigo-400" />
-                                Add Event
-                            </h3>
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
+                        <form onSubmit={handleAddSubmit} onClick={(e) => e.stopPropagation()} className="bg-[#111113] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md border border-[#2A2D35] max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            {/* Header */}
+                            <div className="sticky top-0 z-10 bg-[#111113] border-b border-white/5 px-5 py-4 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Plus size={18} className="text-indigo-400" />
+                                    <h3 className="text-base font-bold text-white">New Event</h3>
+                                </div>
+                                <button type="button" onClick={() => setShowAddModal(false)} className="text-white/40 hover:text-white"><X size={18} /></button>
+                            </div>
 
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-white/50 uppercase mb-2">Title</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                        placeholder="Event title..."
-                                        autoFocus
-                                        value={newEventData.title}
-                                        onChange={e => setNewEventData({ ...newEventData, title: e.target.value })}
-                                        required
-                                    />
+                            <div className="p-5 space-y-4">
+                                {/* Title */}
+                                <input
+                                    type="text"
+                                    className="w-full px-0 py-2 bg-transparent text-white text-xl font-semibold focus:outline-none border-b border-white/10 focus:border-indigo-400 transition-colors placeholder-white/20"
+                                    placeholder="Add title"
+                                    autoFocus
+                                    value={newEventData.title}
+                                    onChange={e => setNewEventData({ ...newEventData, title: e.target.value })}
+                                    required
+                                />
+
+                                {/* All-Day Toggle */}
+                                <div className="flex items-center justify-between py-1">
+                                    <label className="text-sm text-white/70">All day</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewEventData({ ...newEventData, allDay: !newEventData.allDay })}
+                                        className={`w-11 h-6 rounded-full transition-colors relative ${newEventData.allDay ? 'bg-indigo-500' : 'bg-white/20'}`}
+                                    >
+                                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${newEventData.allDay ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                    </button>
                                 </div>
 
+                                {/* Date + Time row */}
                                 <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
-                                            <input
-                                                type="time"
-                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                                value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
-                                                onChange={e => {
-                                                    const [h, m] = e.target.value.split(':');
-                                                    setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">End Time</label>
-                                            <input
-                                                type="time"
-                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                                value={(() => {
-                                                    const endH = newEventData.startHour + newEventData.duration;
-                                                    return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`;
-                                                })()}
-                                                onChange={e => {
-                                                    const [h, m] = e.target.value.split(':');
-                                                    const endHour = parseInt(h) + (parseInt(m) / 60);
-                                                    const dur = Math.max(0.25, endHour - newEventData.startHour);
-                                                    setNewEventData({ ...newEventData, duration: dur });
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    {/* Duration quick-pick chips (Google Calendar style) */}
-                                    <div className="flex flex-wrap gap-1.5 pt-1">
-                                        {[
-                                            { label: '15m', val: 0.25 },
-                                            { label: '30m', val: 0.5 },
-                                            { label: '45m', val: 0.75 },
-                                            { label: '1h', val: 1 },
-                                            { label: '1.5h', val: 1.5 },
-                                            { label: '2h', val: 2 },
-                                            { label: '3h', val: 3 },
-                                            { label: '4h', val: 4 },
-                                            { label: '6h', val: 6 },
-                                            { label: '8h', val: 8 },
-                                        ].map(({ label, val }) => (
-                                            <button
-                                                key={label}
-                                                type="button"
-                                                onClick={() => setNewEventData({ ...newEventData, duration: val })}
-                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === val
-                                                    ? 'bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/30'
-                                                    : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
-                                                    }`}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-[10px] text-white/30 pt-0.5">
-                                        Duration: {newEventData.duration < 1 ? `${Math.round(newEventData.duration * 60)}m` : `${newEventData.duration}h`}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Description</label>
-                                        <textarea
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C] min-h-[80px]"
-                                            placeholder="Event description..."
-                                            value={newEventData.description}
-                                            onChange={e => setNewEventData({ ...newEventData, description: e.target.value })}
+                                    {/* Date */}
+                                    <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                        <CalIcon size={16} className="text-white/40 shrink-0" />
+                                        <input
+                                            type="date"
+                                            className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                            value={newEventData.date.toISOString().split('T')[0]}
+                                            onChange={e => setNewEventData({ ...newEventData, date: new Date(e.target.value + 'T00:00:00') })}
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-white/50 uppercase mb-2">Type</label>
-                                                <div className="flex gap-2">
-                                                    {['work', 'class', 'personal'].map(type => (
-                                                        <button
-                                                            key={type}
-                                                            type="button"
-                                                            onClick={() => setNewEventData({ ...newEventData, type: type as any })}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${newEventData.type === type ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/50 border-white/5 hover:bg-white/5'}`}
-                                                        >
-                                                            {type}
-                                                        </button>
-                                                    ))}
+                                    {/* Start → End time (hidden if all-day) */}
+                                    {!newEventData.allDay && (
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                                    <Clock size={14} className="text-white/30 shrink-0" />
+                                                    <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                                        value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
+                                                        onChange={e => { const [h, m] = e.target.value.split(':'); setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) }); }} required />
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                                    <Clock size={14} className="text-white/30 shrink-0" />
+                                                    <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                                        value={(() => { const endH = newEventData.startHour + newEventData.duration; return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`; })()}
+                                                        onChange={e => { const [h, m] = e.target.value.split(':'); const dur = Math.max(0.25, parseInt(h) + (parseInt(m) / 60) - newEventData.startHour); setNewEventData({ ...newEventData, duration: dur }); }} required />
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-white/50 uppercase mb-2">Priority</label>
-                                                <div className="flex gap-2">
-                                                    {['high', 'medium', 'low'].map(prio => (
-                                                        <button
-                                                            key={prio}
-                                                            type="button"
-                                                            onClick={() => setNewEventData({ ...newEventData, priority: prio as any })}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${newEventData.priority === prio ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/50 border-white/5 hover:bg-white/5'}`}
-                                                        >
-                                                            {prio}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Color</label>
-                                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setNewEventData({ ...newEventData, color: '' })}
-                                                    className={`w-6 h-6 rounded-full border-2 transition-transform ${newEventData.color === '' ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'} bg-white/10 text-white/50 flex items-center justify-center`}
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                                {PRESET_COLORS.map(color => (
-                                                    <button
-                                                        key={color}
-                                                        type="button"
-                                                        onClick={() => setNewEventData({ ...newEventData, color })}
-                                                        className={`w-6 h-6 rounded-full border-2 transition-transform ${newEventData.color === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`}
-                                                        style={{ backgroundColor: color }}
-                                                    />
+                                            {/* Duration chips */}
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {[{ l: '15m', v: 0.25 }, { l: '30m', v: 0.5 }, { l: '45m', v: 0.75 }, { l: '1h', v: 1 }, { l: '1.5h', v: 1.5 }, { l: '2h', v: 2 }, { l: '3h', v: 3 }, { l: '4h', v: 4 }, { l: '6h', v: 6 }, { l: '8h', v: 8 }].map(({ l, v }) => (
+                                                    <button key={l} type="button" onClick={() => setNewEventData({ ...newEventData, duration: v })}
+                                                        className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === v ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>
+                                                        {l}
+                                                    </button>
                                                 ))}
                                             </div>
                                         </div>
+                                    )}
+                                </div>
+
+                                {/* Location */}
+                                <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                    <MapPin size={16} className="text-white/40 shrink-0" />
+                                    <input type="text" placeholder="Add location" className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-white/25"
+                                        value={newEventData.location}
+                                        onChange={e => setNewEventData({ ...newEventData, location: e.target.value })} />
+                                </div>
+
+                                {/* Description */}
+                                <textarea className="w-full px-3 py-2.5 bg-white/5 rounded-xl border border-white/[0.07] text-white text-sm focus:outline-none focus:border-indigo-400/50 placeholder-white/25 resize-none min-h-[72px]"
+                                    placeholder="Add description"
+                                    value={newEventData.description}
+                                    onChange={e => setNewEventData({ ...newEventData, description: e.target.value })} />
+
+                                {/* Recurrence */}
+                                <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                    <RotateCcw size={16} className="text-white/40 shrink-0" />
+                                    <select className="flex-1 bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                                        value={newEventData.recurrence}
+                                        onChange={e => setNewEventData({ ...newEventData, recurrence: e.target.value as any })}>
+                                        <option value="none" className="bg-[#111113]">Does not repeat</option>
+                                        <option value="daily" className="bg-[#111113]">Every day</option>
+                                        <option value="weekdays" className="bg-[#111113]">Every weekday (Mon-Fri)</option>
+                                        <option value="weekly" className="bg-[#111113]">Every week</option>
+                                        <option value="biweekly" className="bg-[#111113]">Every 2 weeks</option>
+                                        <option value="monthly" className="bg-[#111113]">Every month</option>
+                                        <option value="yearly" className="bg-[#111113]">Every year</option>
+                                    </select>
+                                </div>
+
+                                {/* Reminder */}
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Bell size={14} className="text-white/40" />
+                                        <span className="text-xs font-bold text-white/40 uppercase tracking-wider">Reminder</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[{ l: 'None', v: -1 }, { l: 'At time', v: 0 }, { l: '5m', v: 5 }, { l: '10m', v: 10 }, { l: '15m', v: 15 }, { l: '30m', v: 30 }, { l: '1h', v: 60 }, { l: '2h', v: 120 }, { l: '1 day', v: 1440 }].map(({ l, v }) => (
+                                            <button key={l} type="button" onClick={() => setNewEventData({ ...newEventData, reminder: v })}
+                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.reminder === v ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>
+                                                {l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Type + Priority */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-white/40 uppercase mb-2">Type</label>
+                                        <div className="flex gap-1.5">
+                                            {['work', 'class', 'personal'].map(t => (
+                                                <button key={t} type="button" onClick={() => setNewEventData({ ...newEventData, type: t as any })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.type === t ? 'bg-white/15 text-white border-white/30' : 'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-white/40 uppercase mb-2">Priority</label>
+                                        <div className="flex gap-1.5">
+                                            {['high', 'medium', 'low'].map(p => (
+                                                <button key={p} type="button" onClick={() => setNewEventData({ ...newEventData, priority: p as any })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.priority === p ? 'bg-white/15 text-white border-white/30' : 'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Color */}
+                                <div>
+                                    <label className="block text-xs font-bold text-white/40 uppercase mb-2">Color</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button type="button" onClick={() => setNewEventData({ ...newEventData, color: '' })} className={`w-7 h-7 rounded-full border-2 transition-transform bg-white/10 flex items-center justify-center ${newEventData.color === '' ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><X size={12} className="text-white/50" /></button>
+                                        {PRESET_COLORS.map(c => (
+                                            <button key={c} type="button" onClick={() => setNewEventData({ ...newEventData, color: c })} className={`w-7 h-7 rounded-full border-2 transition-transform ${newEventData.color === c ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: c }} />
+                                        ))}
                                     </div>
                                 </div>
                             </div>
 
-
-                            <div className="flex gap-3 mt-6">
-                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 text-white/50 hover:bg-white/5 rounded-md transition-colors font-medium">Cancel</button>
-                                <button type="submit" className="flex-1 py-2.5 bg-[#1E2532] text-white border border-[#2A3F5C] rounded-md hover:bg-[#252E3E] font-medium transition-colors shadow-sm">Save Event</button>
+                            {/* Footer */}
+                            <div className="sticky bottom-0 bg-[#111113] border-t border-white/5 px-5 py-4 flex gap-3">
+                                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 text-white/50 hover:text-white hover:bg-white/5 rounded-xl transition-colors font-medium text-sm">Cancel</button>
+                                <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 font-semibold transition-colors text-sm shadow-lg shadow-indigo-500/20">Save</button>
                             </div>
                         </form>
                     </div>
@@ -661,169 +688,122 @@ export const Schedule: React.FC = () => {
 
                 {/* Edit Event Modal */}
                 {showEditModal && selectedEvent && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
-                        <form onSubmit={handleEditSubmit} onClick={(e) => e.stopPropagation()} className="bg-[#111113] rounded-md shadow-sm p-6 w-full max-w-md animate-slide-up border border-[#2A2D35]">
-                            <div className="flex items-center justify-between mb-5">
-                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                    <Edit2 size={20} className="text-indigo-400" />
-                                    Edit Event
-                                </h3>
-                                <button type="button" onClick={() => setShowEditModal(false)} className="text-white/50 hover:text-white"><X size={20} /></button>
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)}>
+                        <form onSubmit={handleEditSubmit} onClick={(e) => e.stopPropagation()} className="bg-[#111113] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-md border border-[#2A2D35] max-h-[90vh] overflow-y-auto custom-scrollbar">
+                            <div className="sticky top-0 z-10 bg-[#111113] border-b border-white/5 px-5 py-4 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Edit2 size={18} className="text-indigo-400" />
+                                    <h3 className="text-base font-bold text-white">Edit Event</h3>
+                                </div>
+                                <button type="button" onClick={() => setShowEditModal(false)} className="text-white/40 hover:text-white"><X size={18} /></button>
                             </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-white/50 uppercase mb-2">Title</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                        placeholder="Event title..."
-                                        autoFocus
-                                        value={newEventData.title}
-                                        onChange={e => setNewEventData({ ...newEventData, title: e.target.value })}
-                                        required
-                                    />
+                            <div className="p-5 space-y-4">
+                                <input type="text" className="w-full px-0 py-2 bg-transparent text-white text-xl font-semibold focus:outline-none border-b border-white/10 focus:border-indigo-400 transition-colors placeholder-white/20"
+                                    placeholder="Add title" autoFocus value={newEventData.title}
+                                    onChange={e => setNewEventData({ ...newEventData, title: e.target.value })} required />
+                                <div className="flex items-center justify-between py-1">
+                                    <label className="text-sm text-white/70">All day</label>
+                                    <button type="button" onClick={() => setNewEventData({ ...newEventData, allDay: !newEventData.allDay })}
+                                        className={`w-11 h-6 rounded-full transition-colors relative ${newEventData.allDay ? 'bg-indigo-500' : 'bg-white/20'}`}>
+                                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${newEventData.allDay ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                                    </button>
                                 </div>
-
                                 <div className="space-y-2">
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Start Time</label>
-                                            <input
-                                                type="time"
-                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                                value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
-                                                onChange={e => {
-                                                    const [h, m] = e.target.value.split(':');
-                                                    setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) });
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">End Time</label>
-                                            <input
-                                                type="time"
-                                                className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C]"
-                                                value={(() => {
-                                                    const endH = newEventData.startHour + newEventData.duration;
-                                                    return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`;
-                                                })()}
-                                                onChange={e => {
-                                                    const [h, m] = e.target.value.split(':');
-                                                    const endHour = parseInt(h) + (parseInt(m) / 60);
-                                                    const dur = Math.max(0.25, endHour - newEventData.startHour);
-                                                    setNewEventData({ ...newEventData, duration: dur });
-                                                }}
-                                                required
-                                            />
-                                        </div>
+                                    <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                        <CalIcon size={16} className="text-white/40 shrink-0" />
+                                        <input type="date" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                            value={newEventData.date.toISOString().split('T')[0]}
+                                            onChange={e => setNewEventData({ ...newEventData, date: new Date(e.target.value + 'T00:00:00') })} />
                                     </div>
-                                    {/* Duration chips */}
-                                    <div className="flex flex-wrap gap-1.5 pt-1">
-                                        {[
-                                            { label: '15m', val: 0.25 },
-                                            { label: '30m', val: 0.5 },
-                                            { label: '45m', val: 0.75 },
-                                            { label: '1h', val: 1 },
-                                            { label: '1.5h', val: 1.5 },
-                                            { label: '2h', val: 2 },
-                                            { label: '3h', val: 3 },
-                                            { label: '4h', val: 4 },
-                                            { label: '6h', val: 6 },
-                                            { label: '8h', val: 8 },
-                                        ].map(({ label, val }) => (
-                                            <button
-                                                key={label}
-                                                type="button"
-                                                onClick={() => setNewEventData({ ...newEventData, duration: val })}
-                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === val
-                                                        ? 'bg-indigo-500 text-white border-indigo-400 shadow-sm shadow-indigo-500/30'
-                                                        : 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10 hover:text-white'
-                                                    }`}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <p className="text-[10px] text-white/30 pt-0.5">
-                                        Duration: {newEventData.duration < 1 ? `${Math.round(newEventData.duration * 60)}m` : `${newEventData.duration}h`}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-white/50 uppercase mb-2">Description</label>
-                                        <textarea
-                                            className="w-full p-3 border border-white/10 rounded-md bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-[#2A3F5C] min-h-[80px]"
-                                            placeholder="Event description..."
-                                            value={newEventData.description}
-                                            onChange={e => setNewEventData({ ...newEventData, description: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-xs font-bold text-white/50 uppercase mb-2">Type</label>
-                                                <div className="flex gap-2">
-                                                    {['work', 'class', 'personal'].map(type => (
-                                                        <button
-                                                            key={type}
-                                                            type="button"
-                                                            onClick={() => setNewEventData({ ...newEventData, type: type as any })}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${newEventData.type === type ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/50 border-white/5 hover:bg-white/5'}`}
-                                                        >
-                                                            {type}
-                                                        </button>
-                                                    ))}
+                                    {!newEventData.allDay && (
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                                    <Clock size={14} className="text-white/30 shrink-0" />
+                                                    <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                                        value={`${String(Math.floor(newEventData.startHour)).padStart(2,'0')}:${String(Math.round((newEventData.startHour%1)*60)).padStart(2,'0')}`}
+                                                        onChange={e => { const [h,m]=e.target.value.split(':'); setNewEventData({...newEventData, startHour: parseInt(h)+(parseInt(m)/60)}); }} required />
+                                                </div>
+                                                <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                                    <Clock size={14} className="text-white/30 shrink-0" />
+                                                    <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                                                        value={(() => { const endH = newEventData.startHour+newEventData.duration; return `${String(Math.floor(endH)%24).padStart(2,'0')}:${String(Math.round((endH%1)*60)).padStart(2,'0')}`; })()}
+                                                        onChange={e => { const [h,m]=e.target.value.split(':'); const dur=Math.max(0.25,parseInt(h)+(parseInt(m)/60)-newEventData.startHour); setNewEventData({...newEventData,duration:dur}); }} required />
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-xs font-bold text-white/50 uppercase mb-2">Priority</label>
-                                                <div className="flex gap-2">
-                                                    {['high', 'medium', 'low'].map(prio => (
-                                                        <button
-                                                            key={prio}
-                                                            type="button"
-                                                            onClick={() => setNewEventData({ ...newEventData, priority: prio as any })}
-                                                            className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all border ${newEventData.priority === prio ? 'bg-white/10 text-white border-white/20' : 'bg-transparent text-white/50 border-white/5 hover:bg-white/5'}`}
-                                                        >
-                                                            {prio}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-white/50 uppercase mb-2">Color</label>
-                                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setNewEventData({ ...newEventData, color: '' })}
-                                                    className={`w-6 h-6 rounded-full border-2 transition-transform ${newEventData.color === '' ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'} bg-white/10 text-white/50 flex items-center justify-center`}
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                                {PRESET_COLORS.map(color => (
-                                                    <button
-                                                        key={color}
-                                                        type="button"
-                                                        onClick={() => setNewEventData({ ...newEventData, color })}
-                                                        className={`w-6 h-6 rounded-full border-2 transition-transform ${newEventData.color === color ? 'border-white scale-110 shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`}
-                                                        style={{ backgroundColor: color }}
-                                                    />
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {[{l:'15m',v:0.25},{l:'30m',v:0.5},{l:'45m',v:0.75},{l:'1h',v:1},{l:'1.5h',v:1.5},{l:'2h',v:2},{l:'3h',v:3},{l:'4h',v:4},{l:'6h',v:6},{l:'8h',v:8}].map(({l,v})=>(
+                                                    <button key={l} type="button" onClick={()=>setNewEventData({...newEventData,duration:v})}
+                                                        className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration===v?'bg-indigo-500 text-white border-indigo-400':'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
                                                 ))}
                                             </div>
                                         </div>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                    <MapPin size={16} className="text-white/40 shrink-0" />
+                                    <input type="text" placeholder="Add location" className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-white/25"
+                                        value={newEventData.location} onChange={e => setNewEventData({...newEventData, location: e.target.value})} />
+                                </div>
+                                <textarea className="w-full px-3 py-2.5 bg-white/5 rounded-xl border border-white/[0.07] text-white text-sm focus:outline-none placeholder-white/25 resize-none min-h-[72px]"
+                                    placeholder="Add description" value={newEventData.description}
+                                    onChange={e => setNewEventData({...newEventData, description: e.target.value})} />
+                                <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
+                                    <RotateCcw size={16} className="text-white/40 shrink-0" />
+                                    <select className="flex-1 bg-transparent text-white text-sm focus:outline-none cursor-pointer"
+                                        value={newEventData.recurrence} onChange={e => setNewEventData({...newEventData, recurrence: e.target.value as any})}>
+                                        <option value="none" className="bg-[#111113]">Does not repeat</option>
+                                        <option value="daily" className="bg-[#111113]">Every day</option>
+                                        <option value="weekdays" className="bg-[#111113]">Every weekday (Mon-Fri)</option>
+                                        <option value="weekly" className="bg-[#111113]">Every week</option>
+                                        <option value="biweekly" className="bg-[#111113]">Every 2 weeks</option>
+                                        <option value="monthly" className="bg-[#111113]">Every month</option>
+                                        <option value="yearly" className="bg-[#111113]">Every year</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Bell size={14} className="text-white/40" />
+                                        <span className="text-xs font-bold text-white/40 uppercase tracking-wider">Reminder</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {[{l:'None',v:-1},{l:'At time',v:0},{l:'5m',v:5},{l:'10m',v:10},{l:'15m',v:15},{l:'30m',v:30},{l:'1h',v:60},{l:'2h',v:120},{l:'1 day',v:1440}].map(({l,v})=>(
+                                            <button key={l} type="button" onClick={()=>setNewEventData({...newEventData,reminder:v})}
+                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.reminder===v?'bg-indigo-500 text-white border-indigo-400':'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-white/40 uppercase mb-2">Type</label>
+                                        <div className="flex gap-1.5">
+                                            {['work','class','personal'].map(t=>(
+                                                <button key={t} type="button" onClick={()=>setNewEventData({...newEventData,type:t as any})}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.type===t?'bg-white/15 text-white border-white/30':'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{t}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-white/40 uppercase mb-2">Priority</label>
+                                        <div className="flex gap-1.5">
+                                            {['high','medium','low'].map(p=>(
+                                                <button key={p} type="button" onClick={()=>setNewEventData({...newEventData,priority:p as any})}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.priority===p?'bg-white/15 text-white border-white/30':'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{p}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-white/40 uppercase mb-2">Color</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button type="button" onClick={()=>setNewEventData({...newEventData,color:''})} className={`w-7 h-7 rounded-full border-2 transition-transform bg-white/10 flex items-center justify-center ${newEventData.color===''?'border-white scale-110':'border-transparent opacity-50 hover:opacity-100'}`}><X size={12} className="text-white/50" /></button>
+                                        {PRESET_COLORS.map(c=>(<button key={c} type="button" onClick={()=>setNewEventData({...newEventData,color:c})} className={`w-7 h-7 rounded-full border-2 transition-transform ${newEventData.color===c?'border-white scale-110':'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`} style={{backgroundColor:c}} />))}
                                     </div>
                                 </div>
                             </div>
-
-
-                            <div className="flex gap-3 mt-6">
-                                <button type="button" onClick={() => handleDelete()} className="py-2.5 px-4 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-md transition-colors font-medium">Delete</button>
-                                <button type="submit" className="flex-1 py-2.5 bg-[#1E2532] text-white border border-[#2A3F5C] rounded-md hover:bg-[#252E3E] font-medium transition-colors shadow-sm">Save Changes</button>
+                            <div className="sticky bottom-0 bg-[#111113] border-t border-white/5 px-5 py-4 flex gap-3">
+                                <button type="button" onClick={()=>handleDelete()} className="py-2.5 px-4 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors font-medium text-sm">Delete</button>
+                                <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 font-semibold transition-colors text-sm shadow-lg shadow-indigo-500/20">Save Changes</button>
                             </div>
                         </form>
                     </div>
