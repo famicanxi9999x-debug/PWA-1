@@ -454,6 +454,9 @@ export const Schedule: React.FC = () => {
                                     const top = (startHour * 80) + ((startMin / 60) * 80);
                                     const height = (durationMin / 60) * 80;
 
+                                    // Auto-mark past: event whose end time has already passed
+                                    const isPast = new Date(event.end) < currentTime;
+
                                     return (
                                         <div
                                             key={event.id}
@@ -461,22 +464,22 @@ export const Schedule: React.FC = () => {
                                             onDragStart={(e) => { e.dataTransfer.setData('eventId', event.id); setDraggedEventId(event.id); }}
                                             onDragEnd={() => setDraggedEventId(null)}
                                             onClick={(e) => { e.stopPropagation(); handleEventClick(event); }}
-                                            className={`absolute left-1 right-1 rounded-lg p-2 text-xs border-2 shadow-lg cursor-pointer hover:brightness-110 hover:scale-[1.02] transition-all overflow-hidden group ${draggedEventId === event.id ? 'opacity-50' : ''}`}
+                                            className={`absolute left-1 right-1 rounded-lg p-2 text-xs border-2 shadow-lg cursor-pointer hover:brightness-110 hover:scale-[1.02] transition-all overflow-hidden group ${draggedEventId === event.id ? 'opacity-50' : ''} ${isPast ? 'opacity-40 grayscale-[50%]' : ''}`}
                                             style={{
                                                 top: `${top}px`,
                                                 height: `${height}px`,
-                                                backgroundColor: event.color ? `${event.color}E6` : event.type === 'work'
-                                                    ? '#3B82F6E6' // Solid muted blue
+                                                backgroundColor: event.color ? `${event.color}${isPast ? '80' : 'E6'}` : event.type === 'work'
+                                                    ? (isPast ? '#3B82F680' : '#3B82F6E6')
                                                     : event.type === 'class'
-                                                        ? '#F59E0BE6' // Solid muted amber
-                                                        : '#10B981E6', // Solid muted emerald
+                                                        ? (isPast ? '#F59E0B80' : '#F59E0BE6')
+                                                        : (isPast ? '#10B98180' : '#10B981E6'),
                                                 borderColor: event.color ? event.color : event.type === 'work' ? '#2563EB' : event.type === 'class' ? '#D97706' : '#059669',
                                                 zIndex: 10
                                             }}
-                                            title={`Click to edit`}
+                                            title={isPast ? '✓ Completed (past event)' : 'Click to edit'}
                                         >
                                             <div className="font-bold truncate text-white mb-0.5 flex items-center justify-between gap-1">
-                                                <span className="truncate">{event.title}</span>
+                                                <span className={`truncate ${isPast ? 'line-through opacity-70' : ''}`}>{event.title}</span>
                                                 {event.priority === 'high' && <span className="text-[8px] text-red-100 bg-red-600/80 px-1 py-0.5 rounded uppercase font-bold tracking-wider flex-shrink-0">High</span>}
                                                 {event.priority === 'medium' && <span className="text-[8px] text-yellow-100 bg-yellow-600/80 px-1 py-0.5 rounded uppercase font-bold tracking-wider flex-shrink-0">Med</span>}
                                                 {event.priority === 'low' && <span className="text-[8px] text-blue-100 bg-blue-600/80 px-1 py-0.5 rounded uppercase font-bold tracking-wider flex-shrink-0">Low</span>}
@@ -721,20 +724,20 @@ export const Schedule: React.FC = () => {
                                                 <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
                                                     <Clock size={14} className="text-white/30 shrink-0" />
                                                     <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
-                                                        value={`${String(Math.floor(newEventData.startHour)).padStart(2,'0')}:${String(Math.round((newEventData.startHour%1)*60)).padStart(2,'0')}`}
-                                                        onChange={e => { const [h,m]=e.target.value.split(':'); setNewEventData({...newEventData, startHour: parseInt(h)+(parseInt(m)/60)}); }} required />
+                                                        value={`${String(Math.floor(newEventData.startHour)).padStart(2, '0')}:${String(Math.round((newEventData.startHour % 1) * 60)).padStart(2, '0')}`}
+                                                        onChange={e => { const [h, m] = e.target.value.split(':'); setNewEventData({ ...newEventData, startHour: parseInt(h) + (parseInt(m) / 60) }); }} required />
                                                 </div>
                                                 <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
                                                     <Clock size={14} className="text-white/30 shrink-0" />
                                                     <input type="time" className="flex-1 bg-transparent text-white text-sm focus:outline-none"
-                                                        value={(() => { const endH = newEventData.startHour+newEventData.duration; return `${String(Math.floor(endH)%24).padStart(2,'0')}:${String(Math.round((endH%1)*60)).padStart(2,'0')}`; })()}
-                                                        onChange={e => { const [h,m]=e.target.value.split(':'); const dur=Math.max(0.25,parseInt(h)+(parseInt(m)/60)-newEventData.startHour); setNewEventData({...newEventData,duration:dur}); }} required />
+                                                        value={(() => { const endH = newEventData.startHour + newEventData.duration; return `${String(Math.floor(endH) % 24).padStart(2, '0')}:${String(Math.round((endH % 1) * 60)).padStart(2, '0')}`; })()}
+                                                        onChange={e => { const [h, m] = e.target.value.split(':'); const dur = Math.max(0.25, parseInt(h) + (parseInt(m) / 60) - newEventData.startHour); setNewEventData({ ...newEventData, duration: dur }); }} required />
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap gap-1.5">
-                                                {[{l:'15m',v:0.25},{l:'30m',v:0.5},{l:'45m',v:0.75},{l:'1h',v:1},{l:'1.5h',v:1.5},{l:'2h',v:2},{l:'3h',v:3},{l:'4h',v:4},{l:'6h',v:6},{l:'8h',v:8}].map(({l,v})=>(
-                                                    <button key={l} type="button" onClick={()=>setNewEventData({...newEventData,duration:v})}
-                                                        className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration===v?'bg-indigo-500 text-white border-indigo-400':'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
+                                                {[{ l: '15m', v: 0.25 }, { l: '30m', v: 0.5 }, { l: '45m', v: 0.75 }, { l: '1h', v: 1 }, { l: '1.5h', v: 1.5 }, { l: '2h', v: 2 }, { l: '3h', v: 3 }, { l: '4h', v: 4 }, { l: '6h', v: 6 }, { l: '8h', v: 8 }].map(({ l, v }) => (
+                                                    <button key={l} type="button" onClick={() => setNewEventData({ ...newEventData, duration: v })}
+                                                        className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.duration === v ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
                                                 ))}
                                             </div>
                                         </div>
@@ -743,15 +746,15 @@ export const Schedule: React.FC = () => {
                                 <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
                                     <MapPin size={16} className="text-white/40 shrink-0" />
                                     <input type="text" placeholder="Add location" className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder-white/25"
-                                        value={newEventData.location} onChange={e => setNewEventData({...newEventData, location: e.target.value})} />
+                                        value={newEventData.location} onChange={e => setNewEventData({ ...newEventData, location: e.target.value })} />
                                 </div>
                                 <textarea className="w-full px-3 py-2.5 bg-white/5 rounded-xl border border-white/[0.07] text-white text-sm focus:outline-none placeholder-white/25 resize-none min-h-[72px]"
                                     placeholder="Add description" value={newEventData.description}
-                                    onChange={e => setNewEventData({...newEventData, description: e.target.value})} />
+                                    onChange={e => setNewEventData({ ...newEventData, description: e.target.value })} />
                                 <div className="flex items-center gap-3 bg-white/5 rounded-xl px-3 py-2.5 border border-white/[0.07]">
                                     <RotateCcw size={16} className="text-white/40 shrink-0" />
                                     <select className="flex-1 bg-transparent text-white text-sm focus:outline-none cursor-pointer"
-                                        value={newEventData.recurrence} onChange={e => setNewEventData({...newEventData, recurrence: e.target.value as any})}>
+                                        value={newEventData.recurrence} onChange={e => setNewEventData({ ...newEventData, recurrence: e.target.value as any })}>
                                         <option value="none" className="bg-[#111113]">Does not repeat</option>
                                         <option value="daily" className="bg-[#111113]">Every day</option>
                                         <option value="weekdays" className="bg-[#111113]">Every weekday (Mon-Fri)</option>
@@ -767,9 +770,9 @@ export const Schedule: React.FC = () => {
                                         <span className="text-xs font-bold text-white/40 uppercase tracking-wider">Reminder</span>
                                     </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                        {[{l:'None',v:-1},{l:'At time',v:0},{l:'5m',v:5},{l:'10m',v:10},{l:'15m',v:15},{l:'30m',v:30},{l:'1h',v:60},{l:'2h',v:120},{l:'1 day',v:1440}].map(({l,v})=>(
-                                            <button key={l} type="button" onClick={()=>setNewEventData({...newEventData,reminder:v})}
-                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.reminder===v?'bg-indigo-500 text-white border-indigo-400':'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
+                                        {[{ l: 'None', v: -1 }, { l: 'At time', v: 0 }, { l: '5m', v: 5 }, { l: '10m', v: 10 }, { l: '15m', v: 15 }, { l: '30m', v: 30 }, { l: '1h', v: 60 }, { l: '2h', v: 120 }, { l: '1 day', v: 1440 }].map(({ l, v }) => (
+                                            <button key={l} type="button" onClick={() => setNewEventData({ ...newEventData, reminder: v })}
+                                                className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-all border ${newEventData.reminder === v ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/40 border-white/10 hover:text-white hover:bg-white/10'}`}>{l}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -777,18 +780,18 @@ export const Schedule: React.FC = () => {
                                     <div>
                                         <label className="block text-xs font-bold text-white/40 uppercase mb-2">Type</label>
                                         <div className="flex gap-1.5">
-                                            {['work','class','personal'].map(t=>(
-                                                <button key={t} type="button" onClick={()=>setNewEventData({...newEventData,type:t as any})}
-                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.type===t?'bg-white/15 text-white border-white/30':'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{t}</button>
+                                            {['work', 'class', 'personal'].map(t => (
+                                                <button key={t} type="button" onClick={() => setNewEventData({ ...newEventData, type: t as any })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.type === t ? 'bg-white/15 text-white border-white/30' : 'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{t}</button>
                                             ))}
                                         </div>
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-white/40 uppercase mb-2">Priority</label>
                                         <div className="flex gap-1.5">
-                                            {['high','medium','low'].map(p=>(
-                                                <button key={p} type="button" onClick={()=>setNewEventData({...newEventData,priority:p as any})}
-                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.priority===p?'bg-white/15 text-white border-white/30':'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{p}</button>
+                                            {['high', 'medium', 'low'].map(p => (
+                                                <button key={p} type="button" onClick={() => setNewEventData({ ...newEventData, priority: p as any })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border ${newEventData.priority === p ? 'bg-white/15 text-white border-white/30' : 'bg-transparent text-white/40 border-white/5 hover:bg-white/5'}`}>{p}</button>
                                             ))}
                                         </div>
                                     </div>
@@ -796,13 +799,13 @@ export const Schedule: React.FC = () => {
                                 <div>
                                     <label className="block text-xs font-bold text-white/40 uppercase mb-2">Color</label>
                                     <div className="flex flex-wrap gap-2">
-                                        <button type="button" onClick={()=>setNewEventData({...newEventData,color:''})} className={`w-7 h-7 rounded-full border-2 transition-transform bg-white/10 flex items-center justify-center ${newEventData.color===''?'border-white scale-110':'border-transparent opacity-50 hover:opacity-100'}`}><X size={12} className="text-white/50" /></button>
-                                        {PRESET_COLORS.map(c=>(<button key={c} type="button" onClick={()=>setNewEventData({...newEventData,color:c})} className={`w-7 h-7 rounded-full border-2 transition-transform ${newEventData.color===c?'border-white scale-110':'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`} style={{backgroundColor:c}} />))}
+                                        <button type="button" onClick={() => setNewEventData({ ...newEventData, color: '' })} className={`w-7 h-7 rounded-full border-2 transition-transform bg-white/10 flex items-center justify-center ${newEventData.color === '' ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><X size={12} className="text-white/50" /></button>
+                                        {PRESET_COLORS.map(c => (<button key={c} type="button" onClick={() => setNewEventData({ ...newEventData, color: c })} className={`w-7 h-7 rounded-full border-2 transition-transform ${newEventData.color === c ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: c }} />))}
                                     </div>
                                 </div>
                             </div>
                             <div className="sticky bottom-0 bg-[#111113] border-t border-white/5 px-5 py-4 flex gap-3">
-                                <button type="button" onClick={()=>handleDelete()} className="py-2.5 px-4 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors font-medium text-sm">Delete</button>
+                                <button type="button" onClick={() => handleDelete()} className="py-2.5 px-4 bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors font-medium text-sm">Delete</button>
                                 <button type="submit" className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 font-semibold transition-colors text-sm shadow-lg shadow-indigo-500/20">Save Changes</button>
                             </div>
                         </form>
