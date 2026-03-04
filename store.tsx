@@ -25,6 +25,7 @@ interface AppState {
 
   // User Data
   isLoggedIn: boolean;
+  isAuthLoading: boolean; // Tells the UI if we are still verifying the session
   showLoginPage: boolean; // Controls visibility of the full-screen AuthPage
   setShowLoginPage: (show: boolean) => void;
   login: () => void;
@@ -139,6 +140,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // --- LOAD STATE ---
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // Check initial session
@@ -147,6 +149,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (session?.user?.user_metadata?.full_name) {
         setUserNameState(session.user.user_metadata.full_name);
       }
+      setIsAuthLoading(false);
     });
 
     // Listen for auth changes
@@ -155,10 +158,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (session?.user?.user_metadata?.full_name) {
         setUserNameState(session.user.user_metadata.full_name);
       }
-      if (!session) {
+      if (_event === 'SIGNED_OUT') {
         setNotes([]);
         setTasks(INITIAL_TASKS);
       }
+      setIsAuthLoading(false);
 
       // Clean up the URL hash if it contains OAuth tokens
       if (window.location.hash.includes('access_token=')) {
@@ -171,12 +175,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [showLoginPage, setShowLoginPage] = useState(false);
 
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.TASKS);
+      return saved ? JSON.parse(saved).map((t: any) => ({
+        ...t, dueDate: t.dueDate ? new Date(t.dueDate) : undefined
+      })) : INITIAL_TASKS;
+    } catch { return INITIAL_TASKS; }
+  });
+
+  const [notes, setNotes] = useState<Note[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.NOTES);
+      return saved ? JSON.parse(saved).map((n: any) => ({
+        ...n, createdAt: new Date(n.createdAt), updatedAt: new Date(n.updatedAt)
+      })) : [];
+    } catch { return []; }
+  });
 
   useEffect(() => {
     let active = true;
-    if (isLoggedIn) {
+    if (isLoggedIn && !isAuthLoading) {
       const loadData = async () => {
         try {
           const dbNotes = await listNotes();
@@ -199,13 +218,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       };
       loadData();
-    } else {
-      setNotes([]);
-      setTasks(INITIAL_TASKS);
-      setFolders(INITIAL_FOLDERS);
     }
     return () => { active = false; };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, isAuthLoading]);
 
   const [folders, setFolders] = useState<Folder[]>(() => {
     try {
@@ -321,7 +336,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // --- PERSISTENCE ---
   // Auth persistence is handled automatically by Supabase client
-  // Notes and Tasks persistence is now handled by Supabase database instead of local storage
+  // Using LocalStorage for fast offline load, synced with Supabase when logged in
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notes)); }, [notes]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.FOLDERS, JSON.stringify(folders)); }, [folders]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.GOALS, JSON.stringify(goals)); }, [goals]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(stats)); }, [stats]);
@@ -565,7 +582,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   return (
     <AppContext.Provider value={{
       view, setView, tasks, notes, folders, goals, stats, events, focusSettings, focusHistory, dashboardFolders,
-      theme, toggleTheme, highContrast, toggleHighContrast, isLoggedIn, showLoginPage, setShowLoginPage, login, logout,
+      theme, toggleTheme, highContrast, toggleHighContrast, isLoggedIn, isAuthLoading, showLoginPage, setShowLoginPage, login, logout,
       addTask, updateTask, toggleTask, deleteTask, addSubtasks,
       addNote, updateNote, deleteNote, addFolder, updateFolder, deleteFolder,
       expandedFolders, toggleFolderExpansion,

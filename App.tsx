@@ -38,7 +38,7 @@ const MainContent = () => {
 };
 
 const AppContent: React.FC = () => {
-  const { showLoginPage } = useApp();
+  const { showLoginPage, isAuthLoading } = useApp();
   const [showLanding, setShowLanding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,12 +64,12 @@ const AppContent: React.FC = () => {
     setShowLanding(false);
   };
 
-  // Loading state
-  if (isLoading) {
+  // Loading state (wait for both internal init and Supabase auth check)
+  if (isLoading || isAuthLoading) {
     return (
       <div className="w-screen h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-2xl font-bold animate-pulse">
-          Fameo
+        <div className="text-white text-2xl font-bold animate-pulse tracking-widest">
+          FAMEO
         </div>
       </div>
     );
