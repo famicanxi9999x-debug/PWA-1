@@ -11,6 +11,32 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
+  <!-- Anti-cache: Force unregister old service workers if stuck -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          // If we are on vercel but not the main domain, or just generally stuck,
+          // unregister to force a fresh fetch of the new bundle
+          registration.update();
+        }
+      });
+
+      // Also check for our specific cache buster variable
+      const CACHE_VERSION = 'v1.2';
+      const currentCache = localStorage.getItem('fameo-cache-version');
+      if (currentCache !== CACHE_VERSION) {
+        localStorage.setItem('fameo-cache-version', CACHE_VERSION);
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          for (let registration of registrations) {
+            registration.unregister();
+          }
+          window.location.reload(true);
+        });
+      }
+    }
+  </script>
+
   <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" as="style" />
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
