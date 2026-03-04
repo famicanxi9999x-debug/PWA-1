@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { cn } from "../../lib/utils";
@@ -201,7 +201,10 @@ export default function AuthSwitch({ onAuthComplete }: AuthSwitchProps) {
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                  redirectTo: window.location.origin,
+                    // Always redirect to canonical domain so alias URLs with stale SW cache don't cause issues
+                    redirectTo: window.location.hostname === 'localhost'
+                        ? window.location.origin
+                        : 'https://fameoo.vercel.app',
                 }
               });
               if (error) throw error;

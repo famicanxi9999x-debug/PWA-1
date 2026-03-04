@@ -1,4 +1,14 @@
-import { precacheAndRoute } from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { clientsClaim } from 'workbox-core';
+
+// Take control of all clients immediately when a new SW activates
+self.skipWaiting();
+clientsClaim();
+
+// Remove outdated caches from previous versions
+cleanupOutdatedCaches();
+
+// Precache all build assets (injected by vite-plugin-pwa)
 precacheAndRoute(self.__WB_MANIFEST);
 
 // Listen to Push Notifications
@@ -24,7 +34,6 @@ self.addEventListener('push', function (event) {
 // Listen to Background Sync 
 self.addEventListener('sync', function (event) {
     if (event.tag === 'sync-notes') {
-        console.log('Syncing notes in the background...');
         event.waitUntil(syncNotes());
     }
 });
