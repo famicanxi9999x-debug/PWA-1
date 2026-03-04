@@ -9,5 +9,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
     supabaseUrl || '',
-    supabaseAnonKey || ''
+    supabaseAnonKey || '',
+    {
+        auth: {
+            persistSession: true,       // Always store session in localStorage
+            autoRefreshToken: true,     // Auto-refresh before expiry
+            detectSessionInUrl: true,   // Handle OAuth redirects
+            storageKey: 'fameo-auth',   // Custom key so PWA cache doesn't interfere
+        }
+    }
 );

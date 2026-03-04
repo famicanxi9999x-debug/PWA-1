@@ -1,4 +1,4 @@
-
+﻿
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Task, Note, Goal, UserStats, AppView, CalendarEvent, FocusSettings, Folder, Theme, FocusSession, DashboardFolder, DashboardItem } from './types';
 import { createNote, updateNoteAPI, deleteNoteAPI, listNotes, createTask, updateTaskAPI, deleteTaskAPI, listTasks, createFolderAPI, updateFolderAPI, deleteFolderAPI, listFolders } from './services/supabaseService';
