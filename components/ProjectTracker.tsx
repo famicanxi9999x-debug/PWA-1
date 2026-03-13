@@ -99,7 +99,7 @@ const TaskCard: React.FC<{ task: Task, onClick: () => void }> = ({ task, onClick
 };
 
 export const ProjectTracker: React.FC = () => {
-    const { stats, goals, tasks, addTask } = useApp();
+    const { stats, goals, tasks, addTask, isLoggedIn } = useApp();
     const [activeTab, setActiveTab] = useState<'tasks' | 'goals'>('tasks');
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
     const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -229,7 +229,7 @@ export const ProjectTracker: React.FC = () => {
                         {viewMode === 'list' ? (
                             <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
                                 {tasks.length === 0 ? (
-                                    <div className="text-center py-20 text-white/40">No tasks yet. Create one!</div>
+                                    isLoggedIn ? <div className="text-center py-20 text-white/40">No tasks yet. Add your first task!</div> : null
                                 ) : (
                                     tasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTask(task)} />)
                                 )}

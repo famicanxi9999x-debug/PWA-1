@@ -12,10 +12,11 @@ export const supabase = createClient(
     supabaseAnonKey || '',
     {
         auth: {
-            persistSession: true,       // Always store session in localStorage
-            autoRefreshToken: true,     // Auto-refresh before expiry
-            detectSessionInUrl: true,   // Handle OAuth redirects
-            storageKey: 'fameo-auth',   // Custom key so PWA cache doesn't interfere
+            persistSession: true,
+            storageKey: 'fameo-auth',
+            storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
         }
     }
 );

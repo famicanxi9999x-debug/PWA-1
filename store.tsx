@@ -1,4 +1,4 @@
-﻿
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Task, Note, Goal, UserStats, AppView, CalendarEvent, FocusSettings, Folder, Theme, FocusSession, DashboardFolder, DashboardItem } from './types';
 import { createNote, updateNoteAPI, deleteNoteAPI, listNotes, createTask, updateTaskAPI, deleteTaskAPI, listTasks, createFolderAPI, updateFolderAPI, deleteFolderAPI, listFolders } from './services/supabaseService';
@@ -79,10 +79,7 @@ interface AppState {
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
-const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Complete Project Proposal', completed: false, priority: 'high', context: 'work' },
-  { id: '2', title: 'Read 30 pages of "Deep Work"', completed: false, priority: 'medium', context: 'learning' },
-];
+const INITIAL_TASKS: Task[] = [];
 
 const INITIAL_FOLDERS: Folder[] = [
   { id: 'inbox', name: 'Inbox', type: 'system', icon: 'inbox' },

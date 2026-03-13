@@ -7,7 +7,7 @@ import { GlowCard } from './ui/spotlight-card';
 import { Activity, Smile, Meh, Frown, Target, Calendar, FileText, TrendingUp, Clock, BookOpen, CheckSquare, Circle, Check } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-    const { userName, tasks, events, notes, setView, stats, updateTask } = useApp();
+    const { userName, tasks, events, notes, setView, stats, updateTask, isLoggedIn } = useApp();
     const [suggestion, setSuggestion] = useState<string>('Initializing Workspace...');
     const [mood, setMood] = useState<'happy' | 'neutral' | 'sad' | null>(null);
 
@@ -74,10 +74,12 @@ export const Dashboard: React.FC = () => {
 
                 <div className="space-y-2">
                     {todayTasks.length === 0 ? (
-                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                            <Check size={18} className="text-green-400" />
-                            <span className="text-sm text-white/50">All caught up! Great work. 🎉</span>
-                        </div>
+                        isLoggedIn ? (
+                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+                                <Check size={18} className="text-green-400" />
+                                <span className="text-sm text-white/50">No tasks yet. Add your first task!</span>
+                            </div>
+                        ) : null
                     ) : (
                         todayTasks.map(task => (
                             <div
@@ -123,7 +125,7 @@ export const Dashboard: React.FC = () => {
                                         <span className="truncate">{task.title}</span>
                                     </div>
                                 ))}
-                                {incompleteTasks.length === 0 && <p className="text-xs text-white/30 text-center py-4">All caught up! 🎉</p>}
+                                {incompleteTasks.length === 0 && isLoggedIn && <p className="text-xs text-white/30 text-center py-4">No tasks yet. Add your first task!</p>}
                             </div>
                         </div>
                     </GlowCard>
