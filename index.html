@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
   <meta name="description"
     content="Fameo Life OS - The ultimate operating system for your flow state. Manage tasks, notes, and schedule elegantly." />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#111113" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111113" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Fameo Life OS</title>
   <!-- Preconnect to Google Fonts for faster loading -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,7 +42,16 @@
 
   <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" as="style" />
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" as="style">
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="preload"
+    href="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?q=80&w=200&auto=format&fit=crop" as="image" />
+  <link rel="preload"
+    href="https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=200&auto=format&fit=crop" as="image" />
+  <link rel="preload"
+    href="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=200&auto=format&fit=crop" as="image" />
+
   <style>
     :root {
       --background: 222.2 84% 4.9%;
@@ -399,7 +411,28 @@
 </head>
 
 <body class="transition-colors duration-500">
-  <div id="root"></div>
+  <div id="root">
+    <div
+      style="width: 100vw; height: 100vh; background-color: #000; display: flex; align-items: center; justify-content: center;">
+      <div
+        style="color: white; font-size: 1.5rem; font-weight: 700; letter-spacing: 0.1em; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
+        FAMEO
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .5;
+      }
+    }
+  </style>
   <script type="module" src="/index.tsx"></script>
 
 

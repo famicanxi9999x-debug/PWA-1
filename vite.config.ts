@@ -21,39 +21,51 @@ export default defineConfig({
                 name: 'Fameo Life OS',
                 short_name: 'Fameo',
                 description: 'The ultimate operating system for your flow state.',
-                theme_color: '#0f172a',
-                background_color: '#0f172a',
+                theme_color: '#111113',
+                background_color: '#111113',
                 display: 'standalone',
+                orientation: 'portrait',
                 start_url: '/',
                 scope: '/',
                 icons: [
                     {
-                        src: '/vite.svg', // using vite icon as placeholder for now
+                        src: '/icons/icon-192.png',
                         sizes: '192x192',
-                        type: 'image/svg+xml',
-                        purpose: 'any maskable'
+                        type: 'image/png'
                     },
                     {
-                        src: '/vite.svg',
+                        src: '/icons/icon-512.png',
                         sizes: '512x512',
-                        type: 'image/svg+xml',
-                        purpose: 'any maskable'
+                        type: 'image/png'
+                    },
+                    {
+                        src: '/icons/icon-maskable-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
                     }
                 ],
                 shortcuts: [
+                    {
+                        name: "Focus Timer",
+                        short_name: "Focus",
+                        description: "Start a Pomodoro session",
+                        url: "/?action=focus",
+                        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }]
+                    },
                     {
                         name: "New Note",
                         short_name: "Note",
                         description: "Quickly capture a new idea",
                         url: "/?action=new-note",
-                        icons: [{ src: "/vite.svg", sizes: "192x192" }]
+                        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }]
                     },
                     {
                         name: "New Task",
                         short_name: "Task",
                         description: "Add a new action item",
                         url: "/?action=new-task",
-                        icons: [{ src: "/vite.svg", sizes: "192x192" }]
+                        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }]
                     }
                 ],
                 screenshots: [

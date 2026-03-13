@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../store';
 import { AppView } from '../types';
-import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database, Plus, FileText, ListTodo, Mic } from 'lucide-react';
+import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database, Plus, FileText, ListTodo, Mic, CloudOff, CheckCircle } from 'lucide-react';
+import { getPendingActions } from '../lib/offlineQueue';
 import ExpandOnHover from './ui/expand-cards';
 import { aiCall } from '../lib/aiClient';
 import { supabase } from '../lib/supabase';
+import { PushOptIn } from './ui/PushOptIn';
 import { SupabaseTest } from './SupabaseTest';
 import { CommandPalette } from './ui/CommandPalette';
 
@@ -34,8 +36,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     const [showQuickAdd, setShowQuickAdd] = useState(false);
     const [quickAddType, setQuickAddType] = useState<'task' | 'note'>('task');
     const [quickAddText, setQuickAddText] = useState('');
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
+    const [syncCompleted, setSyncCompleted] = useState(false);
 
-    // PWA Install Prompt Listener
+    // PWA Install Prompt Listener & Offline Sync Listeners
     useEffect(() => {
         const handleBeforeInstallPrompt = (e: any) => {
             e.preventDefault();
@@ -48,10 +52,31 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         window.addEventListener('offline', handleOffline);
         window.addEventListener('online', handleOnline);
 
+        // Pre-fetch pending count on load
+        getPendingActions().then(actions => setPendingSyncCount(actions.length)).catch(() => {});
+
+        const handleOfflineSyncToast = () => {
+            setPendingSyncCount(prev => prev + 1);
+            setSyncCompleted(false);
+        };
+
+        const handleServiceWorkerMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'SYNC_COMPLETE') {
+                setPendingSyncCount(0);
+                setSyncCompleted(true);
+                setTimeout(() => setSyncCompleted(false), 5000); // Auto-hide success message
+            }
+        };
+
+        window.addEventListener('offline-sync-toast', handleOfflineSyncToast);
+        navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('offline', handleOffline);
             window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline-sync-toast', handleOfflineSyncToast);
+            navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
         };
     }, []);
 
@@ -121,12 +146,29 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
     return (
         <div className="flex flex-col md:flex-row h-screen text-slate-100 overflow-hidden font-sans relative pt-[env(safe-area-inset-top)]">
-            {isOffline && (
+            {isOffline && !syncCompleted && (
                 <div className="absolute top-0 left-0 right-0 z-[100] bg-amber-600/90 text-white text-xs font-medium py-1.5 px-4 text-center backdrop-blur-sm shadow-md border-b border-amber-500/50 flex items-center justify-center gap-2 animate-slide-down">
-                    <Zap size={14} className="fill-amber-200 text-amber-200" />
-                    You are offline. Displaying cached data. Changes may not sync until reconnected.
+                    <CloudOff size={14} className="text-amber-200" />
+                    You are offline. Displaying cached data.
+                    {pendingSyncCount > 0 && <span className="bg-amber-800/60 px-2 py-0.5 rounded-full ml-1">{pendingSyncCount} pending action{pendingSyncCount !== 1 ? 's' : ''}</span>}
                 </div>
             )}
+            {!isOffline && pendingSyncCount > 0 && !syncCompleted && (
+                <div className="absolute top-0 left-0 right-0 z-[100] bg-indigo-600/90 text-white text-xs font-medium py-1.5 px-4 text-center backdrop-blur-sm shadow-md border-b border-indigo-500/50 flex items-center justify-center gap-2 animate-slide-down">
+                    <Zap size={14} className="fill-indigo-300 text-indigo-300 animate-pulse" />
+                    Back online. Syncing {pendingSyncCount} items to cloud...
+                </div>
+            )}
+            {syncCompleted && (
+                <div className="absolute top-0 left-0 right-0 z-[100] bg-emerald-600/90 text-white text-xs font-medium py-1.5 px-4 text-center backdrop-blur-sm shadow-md border-b border-emerald-500/50 flex items-center justify-center gap-2 animate-slide-down">
+                    <CheckCircle size={14} className="text-emerald-200" />
+                    Offline changes synced successfully!
+                </div>
+            )}
+            
+            {/* Global Push Opt-In prompt */}
+            <PushOptIn />
+
             {/* GLOBAL BACKGROUND - Applied here to ensure coverage */}
             <div className="fixed inset-0 bg-[#111113] -z-50"></div>
 

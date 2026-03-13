@@ -5,7 +5,7 @@ import {
     Search, Plus, Hash, Mic, Loader2, Folder,
     Star, Inbox, MoreHorizontal, FileText, LayoutGrid, List,
     ChevronRight, ChevronDown, ArrowLeft, Trash2, Wand2, Calendar, Clock,
-    Download, Upload, Smile, Image as ImageIcon
+    Download, Upload, Smile, Image as ImageIcon, Share2
 } from 'lucide-react';
 import { analyzeNoteContent, parseVoiceInput } from '../services/geminiService';
 const RichTextEditor = lazy(() => import('./ui/RichTextEditor').then(m => ({ default: m.RichTextEditor })));
@@ -383,6 +383,30 @@ export const SecondBrain: React.FC = () => {
         input.click();
     };
 
+    const handleShareNote = async () => {
+        if (!selectedNoteId) return;
+        const note = notes.find(n => n.id === selectedNoteId);
+        if (!note) return;
+
+        const shareData = {
+            title: note.title || 'Fameo Note',
+            text: `Check out this note from my Fameo Life OS:\n\n${(note.content || '').substring(0, 100)}...`,
+            url: window.location.href, // If you eventually have note-specific URLs, put it here
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.log('Error sharing note:', err);
+            }
+        } else {
+            // Fallback
+            navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+            alert('Note link copied to clipboard!');
+        }
+    };
+
     // Helper to switch contexts
     const selectFolder = (id: string) => {
         setActiveFolderId(id);
@@ -655,6 +679,17 @@ export const SecondBrain: React.FC = () => {
                         >
                             {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <Mic size={18} />}
                         </button>
+
+                        {/* Share Button (Only visible when a note is selected) */}
+                        {selectedNoteId && (
+                            <button
+                                onClick={handleShareNote}
+                                className="p-2 rounded-full text-white/50 hover:bg-white/10 transition-colors"
+                                title="Share Note"
+                            >
+                                <Share2 size={18} />
+                            </button>
+                        )}
 
                         {/* Export Dropdown */}
                         <div className="relative group">

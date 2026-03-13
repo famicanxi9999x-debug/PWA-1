@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <meta name="description" content="Fameo Life OS - Bạn đang offline" />
+    <title>Fameo - Offline</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap"
+        as="style" />
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-bg: #111113;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --red-glow: rgba(239, 68, 68, 0.2);
+        }
+
+        body {
+            font-family: 'Satoshi', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Ambient glow */
+        .ambient-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: var(--red-glow);
+            filter: blur(100px);
+            border-radius: 50%;
+            z-index: 0;
+            animation: pulse-glow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 600px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        svg.wifi-off {
+            width: 40px;
+            height: 40px;
+            color: #ef4444;
+            stroke-width: 2;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        p.message {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .features-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            width: 100%;
+            margin-top: 1rem;
+            text-align: left;
+            box-sizing: border-box;
+        }
+
+        .features-box h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .features-box ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .features-box li {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .features-box li::before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #10b981;
+            border-radius: 50%;
+        }
+
+        .retry-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 9999px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        .retry-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23);
+        }
+
+        .retry-btn:active {
+            transform: translateY(0);
+        }
+
+        .retry-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Action: Navigate to Home if index.html is precached */
+        .home-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            transition: color 0.2s;
+        }
+
+        .home-link:hover {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow"></div>
+
+    <div class="container">
+        <div class="logo">FAMEO</div>
+
+        <div class="icon-wrapper">
+            <svg class="wifi-off" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="2" y1="2" x2="22" y2="22"></line>
+                <path d="M8.5 8.5a10 10 0 0 1 12.3 2"></path>
+                <path d="M5.5 11.5a7 7 0 0 0 5 2"></path>
+                <path d="M2 15a3 3 0 0 1 4-1"></path>
+                <path d="M12 20h.01"></path>
+            </svg>
+        </div>
+
+        <h1>Mất kết nối</h1>
+        <p class="message">Bạn đang offline. Hãy kiểm tra lại kết nối mạng của bạn. Một số tính năng có thể không khả
+            dụng.</p>
+
+        <div class="features-box">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Khả dụng Offline:
+            </h3>
+            <ul>
+                <li>Xem lại Dashboard và Lịch</li>
+                <li>Đọc Ghi chú đã lưu</li>
+                <li>Kiểm tra Danh sách Công việc hiện tại</li>
+                <li>Focus Timer (Pomodoro)</li>
+            </ul>
+        </div>
+
+        <button class="retry-btn" onclick="window.location.reload()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+            </svg>
+            Thử lại
+        </button>
+
+        <a href="/" class="home-link">→ Quay về Màn hình chính</a>
+    </div>
+
+    <!-- Attempt to see if we came back online without reloading -->
+    <script>
+        window.addEventListener('online', () => {
+            // Instantly reload when back online
+            window.location.reload();
+        });
+    </script>
+</body>
+
+</html>

@@ -1,10 +1,53 @@
 import { supabase } from '../lib/supabase';
 import { Note, Task } from '../types';
+import { addPendingAction, PendingAction } from '../lib/offlineQueue';
 
 const handleAuthError = async () => {
     const { data: userRow } = await supabase.auth.getUser();
     if (!userRow.user) throw new Error("User not authenticated");
     return userRow.user;
+};
+
+// Wrapper for offline mutation handling
+const tryOfflineSync = async <T,>(
+    action: Omit<PendingAction, 'id' | 'timestamp' | 'headers' | 'url'> & { endpoint: string, recordId?: string },
+    apiCall: () => Promise<T>,
+    fallbackResult: T
+): Promise<T> => {
+    try {
+        if (!navigator.onLine) {
+            throw new Error('Failed to fetch'); // Force offline flow if browser knows we're offline
+        }
+        return await apiCall();
+    } catch (error: any) {
+        // Check if error is a network error (Supabase fetch failures usually throw TypeError or have specific messages)
+        const isNetworkError = !navigator.onLine || 
+           error.message === 'Failed to fetch' || 
+           error.message?.includes('Network request failed');
+
+        if (isNetworkError) {
+            console.warn('Network offline. Saving action to IndexedDB for Background Sync.');
+            await addPendingAction(action);
+            
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                // @ts-ignore - sync API is not yet fully typed in standard TS lib
+                if (registration.sync) {
+                    // @ts-ignore
+                    await registration.sync.register('sync-data');
+                    console.log('Background Sync registered for: sync-data');
+                }
+            } catch (err) {
+                console.warn('Background sync registration failed (may not be supported). Data saved in queue.', err);
+            }
+
+            // Notify UI
+            window.dispatchEvent(new CustomEvent('offline-sync-toast'));
+            
+            return fallbackResult; // Return optimistic data so the local UI can proceed
+        }
+        throw error;
+    }
 };
 
 // --- NOTES ---
@@ -37,30 +80,50 @@ export const mapNoteToDB = (localNote: Partial<Note>): any => {
 export const createNote = async (noteData: Partial<Note>) => {
     const user = await handleAuthError();
     const payload = mapNoteToDB(noteData);
-    const { data, error } = await supabase
-        .from('notes')
-        .insert([{ ...payload, user_id: user.id }])
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToNote(data);
+    
+    return tryOfflineSync(
+        { endpoint: 'notes', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('notes')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToNote(data);
+        },
+        mapDBToNote({ ...payload, id: noteData.id || crypto.randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    );
 };
 
 export const updateNoteAPI = async (id: string, updates: Partial<Note>) => {
     const payload = mapNoteToDB(updates);
-    const { data, error } = await supabase
-        .from('notes')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToNote(data);
+    
+    return tryOfflineSync(
+        { endpoint: 'notes', method: 'PATCH', payload, recordId: id },
+        async () => {
+            const { data, error } = await supabase
+                .from('notes')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToNote(data);
+        },
+        mapDBToNote({ ...payload, id, updated_at: new Date().toISOString() }) // Partial fallback
+    );
 };
 
 export const deleteNoteAPI = async (id: string) => {
-    const { error } = await supabase.from('notes').delete().eq('id', id);
-    if (error) throw error;
+    return tryOfflineSync(
+        { endpoint: 'notes', method: 'DELETE', recordId: id },
+        async () => {
+            const { error } = await supabase.from('notes').delete().eq('id', id);
+            if (error) throw error;
+        },
+        undefined
+    );
 };
 
 export const listNotes = async (): Promise<Note[]> => {
@@ -111,33 +174,52 @@ export const mapTaskToDB = (localTask: Partial<Task>): any => {
 export const createTask = async (taskData: Partial<Task>) => {
     const user = await handleAuthError();
     const payload = mapTaskToDB(taskData);
-    const { data, error } = await supabase
-        .from('tasks')
-        .insert([{ ...payload, user_id: user.id }])
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToTask(data);
+    
+    return tryOfflineSync(
+        { endpoint: 'tasks', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('tasks')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToTask(data);
+        },
+        mapDBToTask({ ...payload, id: taskData.id || crypto.randomUUID(), created_at: new Date().toISOString() })
+    );
 };
 
 export const updateTaskAPI = async (id: string, updates: Partial<Task>) => {
     const payload = mapTaskToDB(updates);
 
-    // Merge recurrence JSONB if it exists, since we store custom props there. Postgres JSONB update would replace the field otherwise.
-    // However, to keep it simple locally, we'll overwrite it or rely on the store.tsx calling `updateTaskAPI` with full Task objects if needed.
-    const { data, error } = await supabase
-        .from('tasks')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToTask(data);
+    return tryOfflineSync(
+        { endpoint: 'tasks', method: 'PATCH', payload, recordId: id },
+        async () => {
+            // Merge recurrence JSONB if it exists, since we store custom props there. Postgres JSONB update would replace the field otherwise.
+            // However, to keep it simple locally, we'll overwrite it or rely on the store.tsx calling `updateTaskAPI` with full Task objects if needed.
+            const { data, error } = await supabase
+                .from('tasks')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToTask(data);
+        },
+        mapDBToTask({ ...payload, id })
+    );
 };
 
 export const deleteTaskAPI = async (id: string) => {
-    const { error } = await supabase.from('tasks').delete().eq('id', id);
-    if (error) throw error;
+    return tryOfflineSync(
+        { endpoint: 'tasks', method: 'DELETE', recordId: id },
+        async () => {
+            const { error } = await supabase.from('tasks').delete().eq('id', id);
+            if (error) throw error;
+        },
+        undefined
+    );
 };
 
 export const listTasks = async (): Promise<Task[]> => {
@@ -196,30 +278,50 @@ export const mapFolderToDB = (localFolder: Partial<import('../types').Folder>): 
 export const createFolderAPI = async (folderData: Partial<import('../types').Folder>) => {
     const user = await handleAuthError();
     const payload = mapFolderToDB(folderData);
-    const { data, error } = await supabase
-        .from('folders')
-        .insert([{ ...payload, user_id: user.id }])
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToFolder(data);
+    
+    return tryOfflineSync(
+        { endpoint: 'folders', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('folders')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToFolder(data);
+        },
+        mapDBToFolder({ ...payload, id: folderData.id || Date.now().toString() })
+    );
 };
 
 export const updateFolderAPI = async (id: string, updates: Partial<import('../types').Folder>) => {
     const payload = mapFolderToDB(updates);
-    const { data, error } = await supabase
-        .from('folders')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .single();
-    if (error) throw error;
-    return mapDBToFolder(data);
+    
+    return tryOfflineSync(
+        { endpoint: 'folders', method: 'PATCH', payload, recordId: id },
+        async () => {
+            const { data, error } = await supabase
+                .from('folders')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToFolder(data);
+        },
+        mapDBToFolder({ ...payload, id })
+    );
 };
 
 export const deleteFolderAPI = async (id: string) => {
-    const { error } = await supabase.from('folders').delete().eq('id', id);
-    if (error) throw error;
+    return tryOfflineSync(
+        { endpoint: 'folders', method: 'DELETE', recordId: id },
+        async () => {
+            const { error } = await supabase.from('folders').delete().eq('id', id);
+            if (error) throw error;
+        },
+        undefined
+    );
 };
 
 export const listFolders = async (): Promise<import('../types').Folder[]> => {
