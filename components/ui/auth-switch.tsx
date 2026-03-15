@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
 import { cn } from "../../lib/utils";
@@ -201,10 +201,11 @@ export default function AuthSwitch({ onAuthComplete }: AuthSwitchProps) {
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // Always redirect to canonical domain so alias URLs with stale SW cache don't cause issues
-                    redirectTo: window.location.hostname === 'localhost'
-                        ? window.location.origin
-                        : 'https://fameoo.vercel.app',
+                    // Use the current origin so the token is always written to the
+                    // same localStorage namespace the user is browsing from.
+                    // Hardcoding fameoo.vercel.app caused cross-origin token loss
+                    // when accessing via pwa-1-blue.vercel.app or other aliases.
+                    redirectTo: window.location.origin + '/',
                 }
               });
               if (error) throw error;

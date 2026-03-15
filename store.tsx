@@ -145,9 +145,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // before any network request — this is safe and eliminates the race condition
     // that occurred when getSession() + onAuthStateChange both set isAuthLoading=false.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      // 🔍 DIAGNOSTIC: Check DevTools Console to verify auth events. Remove after fix is confirmed.
-      // eslint-disable-next-line no-console
-      console.log('[Fameo Auth]', _event, '| session:', !!session);
       const user = session?.user;
       setIsLoggedIn(!!session);
 
@@ -165,22 +162,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // INITIAL_SESSION fires once on mount with the persisted session (or null).
       // This is the correct place to stop the auth loading spinner.
       if (_event === 'INITIAL_SESSION') {
-        // 🔍 DIAGNOSTIC ALERT: verify session state + localStorage on app mount
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
-        const allKeys = Object.keys(localStorage).join(', ');
-        alert(
-          'INITIAL_SESSION fired!\n' +
-          'session: ' + !!session + '\n' +
-          'sb- keys found: ' + (sbKeys.length ? sbKeys.join(', ') : 'NONE ❌') + '\n' +
-          'all localStorage keys: ' + allKeys.substring(0, 200)
-        );
         setIsAuthLoading(false);
-      }
-
-      // 🔍 DIAGNOSTIC ALERT: check if Supabase wrote the token to localStorage
-      if (_event === 'SIGNED_IN' && session) {
-        const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-'));
-        alert('Auth SIGNED_IN fired!\nSession key in localStorage: ' + (sbKey || 'NOT FOUND ❌'));
       }
 
       if (_event === 'SIGNED_OUT') {
@@ -218,15 +200,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => subscription.unsubscribe();
   }, []);
 
-  // 🔍 DIAGNOSTIC: independently verify what session Supabase sees on mount
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log('[Fameo GetSession] session:', !!data.session, '| error:', error?.message ?? 'none');
-      if (data.session) {
-        console.log('[Fameo GetSession] user:', data.session.user?.email, '| expires:', data.session.expires_at);
-      }
-    });
-  }, []);
 
   const [showLoginPage, setShowLoginPage] = useState(false);
 
