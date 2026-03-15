@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Task, Note, Goal, UserStats, AppView, CalendarEvent, FocusSettings, Folder, Theme, FocusSession, DashboardFolder, DashboardItem } from './types';
-import { createNote, updateNoteAPI, deleteNoteAPI, listNotes, createTask, updateTaskAPI, deleteTaskAPI, listTasks, createFolderAPI, updateFolderAPI, deleteFolderAPI, listFolders } from './services/supabaseService';
+import { createNote, updateNoteAPI, deleteNoteAPI, listNotes, createTask, updateTaskAPI, deleteTaskAPI, listTasks, createFolderAPI, updateFolderAPI, deleteFolderAPI, listFolders, createEventAPI, updateEventAPI, deleteEventAPI, listEvents, createGoalAPI, updateGoalAPI, deleteGoalAPI, listGoals, updateStatsAPI, getStatsAPI, createFocusSessionAPI, listFocusHistory } from './services/supabaseService';
 import { supabase } from './lib/supabase';
 
 interface AppState {
@@ -26,6 +26,7 @@ interface AppState {
   // User Data
   isLoggedIn: boolean;
   isAuthLoading: boolean; // Tells the UI if we are still verifying the session
+  isDataLoading: boolean; // True while the initial cloud data fetch is in-flight
   showLoginPage: boolean; // Controls visibility of the full-screen AuthPage
   setShowLoginPage: (show: boolean) => void;
   login: () => void;
@@ -102,9 +103,7 @@ const createDate = (dayOffset: number, hour: number, minute: number) => {
   return date;
 };
 
-const INITIAL_EVENTS: CalendarEvent[] = [
-  { id: '1', title: 'Deep Work Session', start: createDate(0, 9, 0), end: createDate(0, 11, 0), type: 'work' },
-];
+const INITIAL_EVENTS: CalendarEvent[] = [];
 
 const INITIAL_FOCUS_SETTINGS: FocusSettings = {
   focusDuration: 25,
@@ -138,28 +137,62 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // --- LOAD STATE ---
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      if (session?.user?.user_metadata?.full_name) {
-        setUserNameState(session.user.user_metadata.full_name);
-      }
-      setIsAuthLoading(false);
-    });
-
-    // Listen for auth changes
+    // Use ONLY onAuthStateChange as the single source of truth for auth state.
+    // The INITIAL_SESSION event fires synchronously from localStorage on mount,
+    // before any network request — this is safe and eliminates the race condition
+    // that occurred when getSession() + onAuthStateChange both set isAuthLoading=false.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // 🔍 DIAGNOSTIC: Check DevTools Console to verify auth events. Remove after fix is confirmed.
+      // eslint-disable-next-line no-console
+      console.log('[Fameo Auth]', _event, '| session:', !!session);
+      const user = session?.user;
       setIsLoggedIn(!!session);
-      if (session?.user?.user_metadata?.full_name) {
-        setUserNameState(session.user.user_metadata.full_name);
+
+      if (user?.user_metadata?.full_name) {
+        setUserNameState(user.user_metadata.full_name);
       }
+      if (user?.user_metadata?.avatar_url) {
+        // Only set avatar from OAuth if the user hasn't set a custom one
+        const savedAvatar = localStorage.getItem(STORAGE_KEYS.AVATAR);
+        if (!savedAvatar || savedAvatar === DEFAULT_AVATAR) {
+          setUserAvatarState(user.user_metadata.avatar_url);
+        }
+      }
+
+      // INITIAL_SESSION fires once on mount with the persisted session (or null).
+      // This is the correct place to stop the auth loading spinner.
+      if (_event === 'INITIAL_SESSION') {
+        setIsAuthLoading(false);
+      }
+
       if (_event === 'SIGNED_OUT') {
+        // Clear all sensitive data states
         setNotes([]);
         setTasks(INITIAL_TASKS);
+        setFolders(INITIAL_FOLDERS);
+        setGoals([]);
+        setEvents(INITIAL_EVENTS);
+        setStats({ exp: 0, level: 1, streak: 0, focusMinutesToday: 0 });
+        setFocusHistory([]);
+        setDashboardFolders([]);
+
+        // Wipe local storage keys to ensure privacy across reloads
+        localStorage.removeItem(STORAGE_KEYS.TASKS);
+        localStorage.removeItem(STORAGE_KEYS.NOTES);
+        localStorage.removeItem(STORAGE_KEYS.FOLDERS);
+        localStorage.removeItem(STORAGE_KEYS.GOALS);
+        localStorage.removeItem(STORAGE_KEYS.EVENTS);
+        localStorage.removeItem(STORAGE_KEYS.STATS);
+        localStorage.removeItem(STORAGE_KEYS.FOCUS_HISTORY);
+        localStorage.removeItem(STORAGE_KEYS.DASHBOARD_FOLDERS);
+
+        // Reset view to Home
+        setView(AppView.DASHBOARD);
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
 
       // Clean up the URL hash if it contains OAuth tokens
       if (window.location.hash.includes('access_token=')) {
@@ -194,10 +227,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let active = true;
     if (isLoggedIn && !isAuthLoading) {
       const loadData = async () => {
+        setIsDataLoading(true);
         try {
-          const dbNotes = await listNotes();
-          const dbTasks = await listTasks();
-          let dbFolders = await listFolders();
+          const [dbNotes, dbTasks, fetchedDbFolders, dbEvents, dbGoals, dbStats, dbFocusHistory] = await Promise.all([
+            listNotes(),
+            listTasks(),
+            listFolders(),
+            listEvents(),
+            listGoals(),
+            getStatsAPI(),
+            listFocusHistory()
+          ]);
+
+          let dbFolders = fetchedDbFolders;
 
           // Seed default system folders if user has no folders at all
           if (dbFolders.length === 0) {
@@ -205,13 +247,53 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             dbFolders = await listFolders();
           }
 
+          // Guest Data Migration handling
+          const isMigrationDone = localStorage.getItem('fameo_migration_done');
+          if (!isMigrationDone) {
+            window.dispatchEvent(new CustomEvent('show-toast', { detail: 'Syncing your local data to your account...' }));
+            
+            const migratePromises = [];
+            
+            for (const t of tasks) if (!dbTasks.some(db => db.id === t.id)) migratePromises.push(createTask(t));
+            for (const n of notes) if (!dbNotes.some(db => db.id === n.id)) migratePromises.push(createNote(n));
+            for (const f of folders) if (f.type !== 'system' && !dbFolders.some(db => db.id === f.id)) migratePromises.push(createFolderAPI(f));
+            for (const e of events) if (!dbEvents.some(db => db.id === e.id)) migratePromises.push(createEventAPI(e));
+            for (const g of goals) if (!dbGoals.some(db => db.id === g.id)) migratePromises.push(createGoalAPI(g));
+            for (const fh of focusHistory) if (!dbFocusHistory.some(db => db.id === fh.id)) migratePromises.push(createFocusSessionAPI(fh));
+            
+            if (stats.exp > 0 || stats.focusMinutesToday > 0) {
+                const finalExp = Math.max(dbStats?.exp || 0, stats.exp);
+                const finalLevel = Math.max(dbStats?.level || 1, stats.level);
+                const finalStreak = Math.max(dbStats?.streak || 0, stats.streak);
+                const finalFocus = Math.max(dbStats?.focusMinutesToday || 0, stats.focusMinutesToday);
+                migratePromises.push(updateStatsAPI({ exp: finalExp, level: finalLevel, streak: finalStreak, focusMinutesToday: finalFocus }));
+            }
+
+            if (migratePromises.length > 0) {
+                await Promise.all(migratePromises);
+            }
+
+            localStorage.setItem('fameo_migration_done', 'true');
+            if (migratePromises.length > 0) {
+               // Reload cleanly from DB
+               loadData(); 
+               return; 
+            }
+          }
+
           if (active) {
             setNotes(dbNotes);
             setTasks(dbTasks);
             setFolders(dbFolders);
+            setEvents(dbEvents);
+            setGoals(dbGoals);
+            if (dbStats) setStats(dbStats);
+            setFocusHistory(dbFocusHistory);
+            setIsDataLoading(false);
           }
         } catch (err) {
           console.error("Failed to fetch from Supabase:", err);
+          if (active) setIsDataLoading(false);
         }
       };
       loadData();
@@ -529,22 +611,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setDashboardFolders(prev => prev.filter(f => f.id !== id));
   };
 
-  const addExp = (amount: number) => {
-    setStats(prev => ({ ...prev, exp: prev.exp + amount }));
+  const addExp = async (amount: number) => {
+    const newExp = stats.exp + amount;
+    const newStats = { ...stats, exp: newExp };
+    setStats(newStats);
+    if (isLoggedIn) await updateStatsAPI(newStats).catch(console.error);
   };
 
-  const addEvent = (event: CalendarEvent) => {
+  const addEvent = async (event: CalendarEvent) => {
     setEvents(prev => [...prev, event]);
+    if (isLoggedIn) await createEventAPI(event).catch(console.error);
   };
 
-  const updateEvent = (id: string, updates: Partial<CalendarEvent>) => {
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
     setEvents(prev => prev.map(event =>
       event.id === id ? { ...event, ...updates } : event
     ));
+    if (isLoggedIn) await updateEventAPI(id, updates).catch(console.error);
   };
 
-  const deleteEvent = (id: string) => {
+  const deleteEvent = async (id: string) => {
     setEvents(prev => prev.filter(event => event.id !== id));
+    if (isLoggedIn) await deleteEventAPI(id).catch(console.error);
   };
 
 
@@ -566,20 +654,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setFocusSettings(settings);
   };
 
-  const addFocusSession = (duration: number, type: 'focus' | 'shortBreak' | 'longBreak') => {
+  const addFocusSession = async (duration: number, type: 'focus' | 'shortBreak' | 'longBreak') => {
     const session: FocusSession = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       duration,
       type,
       completedAt: new Date()
     };
     setFocusHistory(prev => [session, ...prev]);
+    if (isLoggedIn) await createFocusSessionAPI(session).catch(console.error);
   };
 
   return (
     <AppContext.Provider value={{
       view, setView, tasks, notes, folders, goals, stats, events, focusSettings, focusHistory, dashboardFolders,
-      theme, toggleTheme, highContrast, toggleHighContrast, isLoggedIn, isAuthLoading, showLoginPage, setShowLoginPage, login, logout,
+      theme, toggleTheme, highContrast, toggleHighContrast, isLoggedIn, isAuthLoading, isDataLoading, showLoginPage, setShowLoginPage, login, logout,
       addTask, updateTask, toggleTask, deleteTask, addSubtasks,
       addNote, updateNote, deleteNote, addFolder, updateFolder, deleteFolder,
       expandedFolders, toggleFolderExpansion,

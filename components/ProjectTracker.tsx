@@ -3,6 +3,7 @@ import { useApp } from '../store';
 import { Task } from '../types';
 import { Trophy, Target, TrendingUp, Star, LayoutList, KanbanSquare, Plus, CheckCircle, Circle, Trash2, Filter, Clock, Tag, Link as LinkIcon, Check } from 'lucide-react';
 import { TaskDetailModal } from './ui/TaskDetailModal';
+import { TaskListSkeleton, GoalsSkeleton } from './ui/SkeletonLoaders';
 
 const priorityColor = (p?: string) => {
     switch (p) {
@@ -99,7 +100,7 @@ const TaskCard: React.FC<{ task: Task, onClick: () => void }> = ({ task, onClick
 };
 
 export const ProjectTracker: React.FC = () => {
-    const { stats, goals, tasks, addTask, isLoggedIn } = useApp();
+    const { stats, goals, tasks, addTask, isLoggedIn, isDataLoading } = useApp();
     const [activeTab, setActiveTab] = useState<'tasks' | 'goals'>('tasks');
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
     const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -155,6 +156,7 @@ export const ProjectTracker: React.FC = () => {
 
             <div className="flex-1 p-6 overflow-hidden flex flex-col">
                 {activeTab === 'tasks' ? (
+                    isDataLoading ? <TaskListSkeleton /> : (
                     // TASKS VIEW
                     <div className="flex flex-col h-full gap-6">
                         <div className="flex justify-between items-center">
@@ -229,7 +231,7 @@ export const ProjectTracker: React.FC = () => {
                         {viewMode === 'list' ? (
                             <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar pr-2">
                                 {tasks.length === 0 ? (
-                                    isLoggedIn ? <div className="text-center py-20 text-white/40">No tasks yet. Add your first task!</div> : null
+                                    isLoggedIn ? <div className="text-center py-20 text-white/40">No tasks yet. Click + to add your first task</div> : null
                                 ) : (
                                     tasks.map(task => <TaskCard key={task.id} task={task} onClick={() => setSelectedTask(task)} />)
                                 )}
@@ -245,6 +247,9 @@ export const ProjectTracker: React.FC = () => {
                                             </span>
                                         </div>
                                         <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 pb-4">
+                                            {tasks.filter(t => t.context === ctx).length === 0 && isLoggedIn && (
+                                                 <div className="text-center py-10 text-xs text-white/40">No tasks yet. Click + to add your first task</div>
+                                            )}
                                             {tasks.filter(t => t.context === ctx).map(task => (
                                                 <TaskCard key={task.id} task={task} onClick={() => setSelectedTask(task)} />
                                             ))}
@@ -254,7 +259,9 @@ export const ProjectTracker: React.FC = () => {
                             </div>
                         )}
                     </div>
+                    )
                 ) : (
+                    isDataLoading ? <GoalsSkeleton /> : (
                     // GOALS VIEW
                     <div className="flex flex-col gap-8 overflow-y-auto custom-scrollbar">
                         {/* Level Stats */}
@@ -290,6 +297,11 @@ export const ProjectTracker: React.FC = () => {
                                 <Target size={18} className="text-indigo-400" /> Active Goals
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {goals.length === 0 && isLoggedIn && (
+                                    <div className="col-span-1 md:col-span-2 text-center py-8 text-white/40 border-2 border-dashed border-white/5 rounded-md">
+                                        No goals set yet
+                                    </div>
+                                )}
                                 {goals.map(goal => (
                                     <div key={goal.id} className="bg-white/5 p-6 rounded-md border border-white/5 shadow-sm hover:border-white/20 transition-all">
                                         <div className="flex justify-between items-start mb-4">
@@ -323,6 +335,7 @@ export const ProjectTracker: React.FC = () => {
                             </div>
                         </div>
                     </div>
+                    )
                 )}
             </div>
 

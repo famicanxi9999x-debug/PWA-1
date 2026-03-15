@@ -10,47 +10,23 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111113" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>Fameo Life OS</title>
-  <!-- Preconnect to Google Fonts for faster loading -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Critical preconnects: fonts + API -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <!-- Supabase: preconnect + DNS prefetch so first API call is faster -->
+  <link rel="preconnect" href="https://hqdpkkzkvoaghbzpfndu.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="https://hqdpkkzkvoaghbzpfndu.supabase.co">
 
-  <!-- Anti-cache: Force unregister old service workers if stuck -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          // If we are on vercel but not the main domain, or just generally stuck,
-          // unregister to force a fresh fetch of the new bundle
-          registration.update();
-        }
-      });
 
-      // Also check for our specific cache buster variable
-      const CACHE_VERSION = 'v1.2';
-      const currentCache = localStorage.getItem('fameo-cache-version');
-      if (currentCache !== CACHE_VERSION) {
-        localStorage.setItem('fameo-cache-version', CACHE_VERSION);
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-          for (let registration of registrations) {
-            registration.unregister();
-          }
-          window.location.reload(true);
-        });
-      }
-    }
-  </script>
 
-  <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" as="style" />
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet">
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" as="style">
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Satoshi: non-blocking async load (avoids render-blocking) -->
+  <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap" rel="stylesheet"></noscript>
 
-  <link rel="preload"
-    href="https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?q=80&w=200&auto=format&fit=crop" as="image" />
-  <link rel="preload"
-    href="https://images.unsplash.com/photo-1517842645767-c639042777db?q=80&w=200&auto=format&fit=crop" as="image" />
-  <link rel="preload"
-    href="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?q=80&w=200&auto=format&fit=crop" as="image" />
+  <!-- Fira Code (code editor font): non-critical, load after page paints -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"></noscript>
 
   <style>
     :root {
@@ -392,22 +368,7 @@
       }
     }
   </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.4",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.40.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-    "clsx": "https://esm.sh/clsx@^2.1.0",
-    "tailwind-merge": "https://esm.sh/tailwind-merge@^2.2.1",
-    "class-variance-authority": "https://esm.sh/class-variance-authority@^0.7.0",
-    "@radix-ui/react-slot": "https://esm.sh/@radix-ui/react-slot@^1.0.2",
-    "framer-motion": "https://esm.sh/framer-motion@^11.0.8"
-  }
-}
-</script>
+
 </head>
 
 <body class="transition-colors duration-500">

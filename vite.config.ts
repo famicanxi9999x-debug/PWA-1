@@ -1,4 +1,4 @@
-﻿import { defineConfig } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
@@ -8,8 +8,8 @@ export default defineConfig({
     plugins: [
         react(),
         VitePWA({
-            registerType: 'autoUpdate',
-            workbox: { clientsClaim: true, skipWaiting: true },
+            registerType: 'prompt',
+            workbox: { clientsClaim: false, skipWaiting: false, cleanupOutdatedCaches: true },
             injectRegister: 'auto',
             strategies: 'injectManifest',
             srcDir: 'src',
@@ -93,7 +93,7 @@ export default defineConfig({
         },
     },
     build: {
-        target: 'es2015',
+        target: 'es2020',
         minify: 'terser',
         terserOptions: {
             compress: {
@@ -108,7 +108,9 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 manualChunks: {
-                    // Separate Three.js into its own chunk (lazy loaded)
+                    // React core — critical for first paint, cache separately
+                    'react-vendor': ['react', 'react-dom'],
+                    // Three.js into its own chunk (lazy loaded for landing page)
                     'three-vendor': ['three', 'gsap'],
                     // TipTap editor in separate chunk
                     'editor-vendor': [

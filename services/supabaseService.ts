@@ -332,3 +332,266 @@ export const listFolders = async (): Promise<import('../types').Folder[]> => {
     if (error) throw error;
     return (data || []).map(mapDBToFolder);
 };
+
+// --- EVENTS ---
+
+export const mapDBToEvent = (dbEvent: any): import('../types').CalendarEvent => ({
+    id: dbEvent.id,
+    title: dbEvent.title || '',
+    start: new Date(dbEvent.start_time),
+    end: new Date(dbEvent.end_time),
+    type: dbEvent.type || 'personal',
+    description: dbEvent.description,
+    color: dbEvent.color,
+    priority: dbEvent.priority,
+    allDay: dbEvent.all_day,
+    location: dbEvent.location,
+    recurrence: dbEvent.recurrence,
+    reminder: dbEvent.reminder
+});
+
+export const mapEventToDB = (localEvent: Partial<import('../types').CalendarEvent>): any => {
+    const payload: any = {};
+    if (localEvent.id !== undefined) payload.id = localEvent.id;
+    if (localEvent.title !== undefined) payload.title = localEvent.title;
+    if (localEvent.start !== undefined) payload.start_time = localEvent.start.toISOString();
+    if (localEvent.end !== undefined) payload.end_time = localEvent.end.toISOString();
+    if (localEvent.type !== undefined) payload.type = localEvent.type;
+    if (localEvent.description !== undefined) payload.description = localEvent.description;
+    if (localEvent.color !== undefined) payload.color = localEvent.color;
+    if (localEvent.priority !== undefined) payload.priority = localEvent.priority;
+    if (localEvent.allDay !== undefined) payload.all_day = localEvent.allDay;
+    if (localEvent.location !== undefined) payload.location = localEvent.location;
+    if (localEvent.recurrence !== undefined) payload.recurrence = localEvent.recurrence;
+    if (localEvent.reminder !== undefined) payload.reminder = localEvent.reminder;
+    return payload;
+};
+
+export const createEventAPI = async (eventData: Partial<import('../types').CalendarEvent>) => {
+    const user = await handleAuthError();
+    const payload = mapEventToDB(eventData);
+    
+    return tryOfflineSync(
+        { endpoint: 'events', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('events')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToEvent(data);
+        },
+        mapDBToEvent({ ...payload, id: eventData.id || crypto.randomUUID() })
+    );
+};
+
+export const updateEventAPI = async (id: string, updates: Partial<import('../types').CalendarEvent>) => {
+    const payload = mapEventToDB(updates);
+    
+    return tryOfflineSync(
+        { endpoint: 'events', method: 'PATCH', payload, recordId: id },
+        async () => {
+            const { data, error } = await supabase
+                .from('events')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToEvent(data);
+        },
+        mapDBToEvent({ ...payload, id })
+    );
+};
+
+export const deleteEventAPI = async (id: string) => {
+    return tryOfflineSync(
+        { endpoint: 'events', method: 'DELETE', recordId: id },
+        async () => {
+            const { error } = await supabase.from('events').delete().eq('id', id);
+            if (error) throw error;
+        },
+        undefined
+    );
+};
+
+export const listEvents = async (): Promise<import('../types').CalendarEvent[]> => {
+    const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('start_time', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(mapDBToEvent);
+};
+
+// --- GOALS ---
+
+export const mapDBToGoal = (dbGoal: any): import('../types').Goal => ({
+    id: dbGoal.id,
+    title: dbGoal.title || '',
+    type: dbGoal.type || 'life',
+    progress: dbGoal.progress || 0
+});
+
+export const mapGoalToDB = (localGoal: Partial<import('../types').Goal>): any => {
+    const payload: any = {};
+    if (localGoal.id !== undefined) payload.id = localGoal.id;
+    if (localGoal.title !== undefined) payload.title = localGoal.title;
+    if (localGoal.type !== undefined) payload.type = localGoal.type;
+    if (localGoal.progress !== undefined) payload.progress = localGoal.progress;
+    return payload;
+};
+
+export const createGoalAPI = async (goalData: Partial<import('../types').Goal>) => {
+    const user = await handleAuthError();
+    const payload = mapGoalToDB(goalData);
+    
+    return tryOfflineSync(
+        { endpoint: 'goals', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('goals')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToGoal(data);
+        },
+        mapDBToGoal({ ...payload, id: goalData.id || crypto.randomUUID() })
+    );
+};
+
+export const updateGoalAPI = async (id: string, updates: Partial<import('../types').Goal>) => {
+    const payload = mapGoalToDB(updates);
+    
+    return tryOfflineSync(
+        { endpoint: 'goals', method: 'PATCH', payload, recordId: id },
+        async () => {
+            const { data, error } = await supabase
+                .from('goals')
+                .update(payload)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToGoal(data);
+        },
+        mapDBToGoal({ ...payload, id })
+    );
+};
+
+export const deleteGoalAPI = async (id: string) => {
+    return tryOfflineSync(
+        { endpoint: 'goals', method: 'DELETE', recordId: id },
+        async () => {
+            const { error } = await supabase.from('goals').delete().eq('id', id);
+            if (error) throw error;
+        },
+        undefined
+    );
+};
+
+export const listGoals = async (): Promise<import('../types').Goal[]> => {
+    const { data, error } = await supabase
+        .from('goals')
+        .select('*')
+        .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(mapDBToGoal);
+};
+
+// --- STATS ---
+
+export const mapDBToStats = (dbStats: any): import('../types').UserStats => ({
+    exp: dbStats.exp || 0,
+    level: dbStats.level || 1,
+    streak: dbStats.streak || 0,
+    focusMinutesToday: dbStats.focus_minutes_today || 0
+});
+
+export const mapStatsToDB = (localStats: Partial<import('../types').UserStats>): any => {
+    const payload: any = {};
+    if (localStats.exp !== undefined) payload.exp = localStats.exp;
+    if (localStats.level !== undefined) payload.level = localStats.level;
+    if (localStats.streak !== undefined) payload.streak = localStats.streak;
+    if (localStats.focusMinutesToday !== undefined) payload.focus_minutes_today = localStats.focusMinutesToday;
+    return payload;
+};
+
+export const updateStatsAPI = async (updates: Partial<import('../types').UserStats>) => {
+    const user = await handleAuthError();
+    const payload = mapStatsToDB(updates);
+    
+    return tryOfflineSync(
+        { endpoint: 'stats', method: 'PATCH', payload: { ...payload, user_id: user.id } },
+        async () => {
+            // Upsert based on user_id
+            const { data, error } = await supabase
+                .from('stats')
+                .upsert({ ...payload, user_id: user.id }, { onConflict: 'user_id' })
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToStats(data);
+        },
+        mapDBToStats({ ...payload })
+    );
+};
+
+export const getStatsAPI = async (): Promise<import('../types').UserStats | null> => {
+    const user = await handleAuthError();
+    const { data, error } = await supabase
+        .from('stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle(); // Use maybeSingle since it might not exist yet
+    if (error) throw error;
+    return data ? mapDBToStats(data) : null;
+};
+
+// --- FOCUS HISTORY ---
+
+export const mapDBToFocusSession = (dbSession: any): import('../types').FocusSession => ({
+    id: dbSession.id,
+    duration: dbSession.duration || 0,
+    type: dbSession.type || 'focus',
+    completedAt: new Date(dbSession.completed_at)
+});
+
+export const mapFocusSessionToDB = (localSession: Partial<import('../types').FocusSession>): any => {
+    const payload: any = {};
+    if (localSession.id !== undefined) payload.id = localSession.id;
+    if (localSession.duration !== undefined) payload.duration = localSession.duration;
+    if (localSession.type !== undefined) payload.type = localSession.type;
+    if (localSession.completedAt !== undefined) payload.completed_at = localSession.completedAt.toISOString();
+    return payload;
+};
+
+export const createFocusSessionAPI = async (sessionData: Partial<import('../types').FocusSession>) => {
+    const user = await handleAuthError();
+    const payload = mapFocusSessionToDB(sessionData);
+    
+    return tryOfflineSync(
+        { endpoint: 'focus_history', method: 'POST', payload: { ...payload, user_id: user.id } },
+        async () => {
+            const { data, error } = await supabase
+                .from('focus_history')
+                .insert([{ ...payload, user_id: user.id }])
+                .select()
+                .single();
+            if (error) throw error;
+            return mapDBToFocusSession(data);
+        },
+        mapDBToFocusSession({ ...payload, id: sessionData.id || crypto.randomUUID() })
+    );
+};
+
+export const listFocusHistory = async (): Promise<import('../types').FocusSession[]> => {
+    const { data, error } = await supabase
+        .from('focus_history')
+        .select('*')
+        .order('completed_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapDBToFocusSession);
+};

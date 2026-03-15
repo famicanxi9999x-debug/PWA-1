@@ -1,15 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../store';
 import { AppView } from '../types';
 import { suggestDailyPlan } from '../services/geminiService';
 import { GlowCard } from './ui/spotlight-card';
 import { Activity, Smile, Meh, Frown, Target, Calendar, FileText, TrendingUp, Clock, BookOpen, CheckSquare, Circle, Check } from 'lucide-react';
+import { DashboardSkeleton } from './ui/SkeletonLoaders';
 
 export const Dashboard: React.FC = () => {
-    const { userName, tasks, events, notes, setView, stats, updateTask, isLoggedIn } = useApp();
+    const { userName, tasks, events, notes, setView, stats, updateTask, isLoggedIn, isDataLoading } = useApp();
     const [suggestion, setSuggestion] = useState<string>('Initializing Workspace...');
     const [mood, setMood] = useState<'happy' | 'neutral' | 'sad' | null>(null);
+
+    if (isDataLoading) return <DashboardSkeleton />;
 
     const incompleteTasks = tasks.filter(t => !t.completed);
     const todayTasks = incompleteTasks.slice(0, 5);
@@ -77,7 +79,7 @@ export const Dashboard: React.FC = () => {
                         isLoggedIn ? (
                             <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
                                 <Check size={18} className="text-green-400" />
-                                <span className="text-sm text-white/50">No tasks yet. Add your first task!</span>
+                                <span className="text-sm text-white/50">No tasks yet. Click + to add your first task</span>
                             </div>
                         ) : null
                     ) : (
@@ -125,7 +127,7 @@ export const Dashboard: React.FC = () => {
                                         <span className="truncate">{task.title}</span>
                                     </div>
                                 ))}
-                                {incompleteTasks.length === 0 && isLoggedIn && <p className="text-xs text-white/30 text-center py-4">No tasks yet. Add your first task!</p>}
+                                {incompleteTasks.length === 0 && isLoggedIn && <p className="text-xs text-white/30 text-center py-4">No tasks yet. Click + to add your first task</p>}
                             </div>
                         </div>
                     </GlowCard>
@@ -152,7 +154,7 @@ export const Dashboard: React.FC = () => {
                                         <span className="ml-auto text-[10px] text-white/30 shrink-0">{new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
                                 ))}
-                                {events.length === 0 && <p className="text-xs text-white/30 text-center py-4">No events scheduled.</p>}
+                                {events.length === 0 && <p className="text-xs text-white/30 text-center py-4">No events scheduled</p>}
                             </div>
                         </div>
                     </GlowCard>

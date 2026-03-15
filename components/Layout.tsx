@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useApp } from '../store';
 import { AppView } from '../types';
 import { Home, Zap, Book, CheckSquare, Moon, Command, Calendar, ChevronRight, Search, Settings, X, LogIn, LogOut, User, Edit3, BarChart2, Layers, Compass, Loader2, Bell, Database, Plus, FileText, ListTodo, Mic, CloudOff, CheckCircle } from 'lucide-react';
@@ -6,9 +6,10 @@ import { getPendingActions } from '../lib/offlineQueue';
 import ExpandOnHover from './ui/expand-cards';
 import { aiCall } from '../lib/aiClient';
 import { supabase } from '../lib/supabase';
-import { PushOptIn } from './ui/PushOptIn';
-import { SupabaseTest } from './SupabaseTest';
-import { CommandPalette } from './ui/CommandPalette';
+
+// Lazy-load non-critical Layout sub-components to keep them out of the critical bundle
+const PushOptIn = lazy(() => import('./ui/PushOptIn').then(m => ({ default: m.PushOptIn })));
+const CommandPalette = lazy(() => import('./ui/CommandPalette').then(m => ({ default: m.CommandPalette })));
 
 interface NavigationItem {
     target: AppView;
@@ -528,13 +529,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
             )}
 
-            {/* Supabase Dev Tools Modal */}
-            {showSupabaseTest && (
-                <SupabaseTest onClose={() => setShowSupabaseTest(false)} />
-            )}
+
 
             {/* Global Command Palette */}
-            <CommandPalette />
+            <Suspense fallback={null}>
+                <CommandPalette />
+            </Suspense>
         </div>
     );
 };
