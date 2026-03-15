@@ -13,8 +13,9 @@ const CURRENT_CACHES = {
 };
 const ALL_CURRENT_CACHES = Object.values(CURRENT_CACHES);
 
-// Take control of all clients immediately when a new SW activates
-self.skipWaiting();
+// NOTE: skipWaiting is intentionally NOT called here.
+// vite.config.ts sets skipWaiting: false so updates only activate when user reloads.
+// Calling self.skipWaiting() here would override that and cause mid-session SW takeovers.
 clientsClaim();
 
 // Remove outdated caches from previous versions

@@ -165,6 +165,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // INITIAL_SESSION fires once on mount with the persisted session (or null).
       // This is the correct place to stop the auth loading spinner.
       if (_event === 'INITIAL_SESSION') {
+        // 🔍 DIAGNOSTIC ALERT: verify session state + localStorage on app mount
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
+        const allKeys = Object.keys(localStorage).join(', ');
+        alert(
+          'INITIAL_SESSION fired!\n' +
+          'session: ' + !!session + '\n' +
+          'sb- keys found: ' + (sbKeys.length ? sbKeys.join(', ') : 'NONE ❌') + '\n' +
+          'all localStorage keys: ' + allKeys.substring(0, 200)
+        );
         setIsAuthLoading(false);
       }
 
