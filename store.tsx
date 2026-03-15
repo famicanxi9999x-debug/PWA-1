@@ -168,6 +168,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setIsAuthLoading(false);
       }
 
+      // 🔍 DIAGNOSTIC ALERT: check if Supabase wrote the token to localStorage
+      if (_event === 'SIGNED_IN' && session) {
+        const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-'));
+        alert('Auth SIGNED_IN fired!\nSession key in localStorage: ' + (sbKey || 'NOT FOUND ❌'));
+      }
+
       if (_event === 'SIGNED_OUT') {
         // Clear all sensitive data states
         setNotes([]);
