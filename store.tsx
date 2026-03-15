@@ -203,6 +203,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return () => subscription.unsubscribe();
   }, []);
 
+  // 🔍 DIAGNOSTIC: independently verify what session Supabase sees on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log('[Fameo GetSession] session:', !!data.session, '| error:', error?.message ?? 'none');
+      if (data.session) {
+        console.log('[Fameo GetSession] user:', data.session.user?.email, '| expires:', data.session.expires_at);
+      }
+    });
+  }, []);
+
   const [showLoginPage, setShowLoginPage] = useState(false);
 
   const [tasks, setTasks] = useState<Task[]>(() => {

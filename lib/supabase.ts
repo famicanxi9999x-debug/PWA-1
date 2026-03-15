@@ -7,6 +7,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables. Please check your .env.local file.');
 }
 
+// 🔍 DIAGNOSTIC: confirm storage is available before client init
+console.log('[Fameo Storage] localStorage available:',
+    typeof window !== 'undefined' && !!window.localStorage);
+
 export const supabase = createClient(
     supabaseUrl || '',
     supabaseAnonKey || '',
